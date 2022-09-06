@@ -6,7 +6,8 @@
     "build": "run-p type-check build-only",
     "preview": "vite preview --port 4173",
     "build-only": "vite build",
-    "type-check": "vue-tsc --noEmit"
+    "type-check": "vue-tsc --noEmit",
+    "lint": "eslint --fix"
   },
   "dependencies": {
     "@types/fabric": "^4.5.12",
@@ -14,6 +15,7 @@
     "vue": "^3.2.37"
   },
   "devDependencies": {
+    "@antfu/eslint-config": "^0.26.3",
     "@types/node": "^16.11.45",
     "@vitejs/plugin-vue": "^3.0.1",
     "@vue/tsconfig": "^0.1.3",
