@@ -1,14 +1,22 @@
 <script setup lang="ts">
-import { defineEmits, getCurrentInstance } from 'vue'
+import { getCurrentInstance } from 'vue'
+import type{ ReadyQueueSetting } from '@/config'
 const emits = defineEmits(['changestatus'])
 const { proxy } = getCurrentInstance()!
 // eslint-disable-next-line @typescript-eslint/no-non-null-asserted-optional-chain
 const readyQueueSetting = proxy?.$readyQueueSetting!
+
 function addReadyQueue() {
   readyQueueSetting.value.push({
-    priority: 4,
+    priority: 1,
     timeSlice: 1,
   })
+}
+
+function removeReadyQueue(queue: ReadyQueueSetting) {
+  readyQueueSetting.value.splice(readyQueueSetting.value.findIndex((v) => {
+    return v === queue
+  }), 1)
 }
 
 function finishSetting() {
@@ -56,6 +64,9 @@ function modifySetting() {
         <span>队列{{ index }}: </span>
         <label>优先级</label><input v-model="item.priority" type="number" step="1" min="1">
         <label>时间片长度</label><input v-model="item.timeSlice" type="number" step="0.1" min="0.1">
+        <button @click="removeReadyQueue(item)">
+          移除
+        </button>
       </div>
       <div>
         <button @click="finishSetting">

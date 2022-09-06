@@ -1,41 +1,85 @@
 <script setup lang="ts">
 import { fabric } from 'fabric'
-import { defineEmits, getCurrentInstance, onMounted } from 'vue'
+import { getCurrentInstance, onMounted } from 'vue'
+import { ReadyQueue, RunningQueue, WaitQueue } from '@/class/Queue'
+import type{ Queue } from '@/class/Queue'
+import * as ui from '@/config/ui'
 const emits = defineEmits(['changestatus'])
 const { proxy } = getCurrentInstance()!
 // eslint-disable-next-line @typescript-eslint/no-non-null-asserted-optional-chain
 const readyQueueSetting = proxy?.$readyQueueSetting!
+const readyQueues: ReadyQueue[] = []
+const waitQueue = new WaitQueue('等待队列')
+const runningQueue = new RunningQueue('运行队列')
+initReadyQueues()
+
 onMounted(() => {
   const canvas = new fabric.Canvas('c', {
     backgroundColor: 'rgb(100,100,200)',
     selectionLineWidth: 2,
-    height: 1000,
-    width: 1000,
+    height: (readyQueues.length + 2) * (ui.defaultQueueOptions.height! + 20),
+    width: 1500,
     // ...
   })
-  const rect = new fabric.Rect({
-    height: 100,
-    width: 100,
-  })
-  canvas.add(rect)
-  rect.set('angle', -15)
-  rect.set('selectable', false)
-  rect.animate('angle', 45, {
-    onChange: canvas.renderAll.bind(canvas),
-  })
-  rect.animate('left', '+=45', {
-    duration: 2000,
-    onChange: canvas.renderAll.bind(canvas),
-  })
-  const path = new fabric.Path('m9 20l-1.4-1.4l1.75-1.8q-3.2-.425-5.275-1.75T2 12q0-2.075 2.888-3.538Q7.775 7 12 7t7.113 1.462Q22 9.925 22 12q0 1.55-1.663 2.775Q18.675 16 16 16.6v-2.05q1.925-.5 2.962-1.238Q20 12.575 20 12q0-.8-2.137-1.9Q15.725 9 12 9q-3.725 0-5.862 1.1Q4 11.2 4 12q0 .6 1.275 1.438Q6.55 14.275 8.9 14.7l-1.3-1.3L9 12l4 4Z')
-  path.set({ left: 120, top: 120 })
-  canvas.add(path)
+  drawQueues(canvas)
 })
+
+function initReadyQueues() {
+  readyQueueSetting.value.forEach((item, index) => {
+    const newqueue = new ReadyQueue(item.priority, item.timeSlice, `就绪队列${index}`)
+    readyQueues.push(newqueue)
+  })
+  readyQueues.sort((a: ReadyQueue, b: ReadyQueue) => {
+    return b.priority - a.priority
+  })
+}
+
+function drawQueues(canvas: fabric.Canvas) {
+  const queues: Queue[] = [...readyQueues, waitQueue, runningQueue]
+  queues.forEach((v, i) => {
+    let items: fabric.Object[] = []
+    let count = 0
+    const nametext = new fabric.Text(`${v.name}`, {
+      fontSize: ui.textOptions.fontSize!,
+      originX: 'center',
+      originY: 'left',
+      fill: '#f1ca17',
+      top: (ui.textOptions.fontSize! + 10) * count++,
+    })
+    if (v instanceof ReadyQueue) {
+      const pritext = new fabric.Text(`优先级:${v.priority}`, {
+        fontSize: ui.textOptions.fontSize!,
+        originX: 'center',
+        originY: 'left',
+        top: (ui.textOptions.fontSize! + 10) * count++,
+      })
+      const timetext = new fabric.Text(`时间片长度:${v.timeSlice}`, {
+        fontSize: ui.textOptions.fontSize!,
+        originX: 'center',
+        originY: 'left',
+        top: (ui.textOptions.fontSize! + 10) * count++,
+      })
+      items.push(pritext, timetext)
+    }
+    const sizetext = new fabric.Text(`队列长度:${v.size}`, {
+      fontSize: ui.textOptions.fontSize!,
+      originX: 'center',
+      originY: 'left',
+      top: (ui.textOptions.fontSize! + 10) * count++,
+    })
+    const rect = new fabric.Rect(Object.assign({ }, ui.queueOptions.get(v.category)))
+    items = [rect, nametext, sizetext, ...items]
+    const group = new fabric.Group(items, {
+      top: (ui.defaultQueueOptions.height! + 20) * i + 10, left: 100,
+    })
+    canvas.add(group)
+  })
+}
 </script>
 
 <template>
   <div>
-    <main style="height:1000px;">
+    <main>
       <div>
         <button @click="$emit('changestatus', 'setting')">
           返回
