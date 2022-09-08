@@ -1,9 +1,10 @@
 <script setup lang="ts">
 import { fabric } from 'fabric'
-import { getCurrentInstance, onMounted } from 'vue'
+import { getCurrentInstance, onMounted, ref } from 'vue'
 import { ReadyQueue, RunningQueue, WaitQueue } from '@/class/Queue'
 import type{ Queue } from '@/class/Queue'
 import * as ui from '@/config/ui'
+import { bindAttr2Ref } from '@/utils/tool'
 const emits = defineEmits(['changestatus'])
 const { proxy } = getCurrentInstance()!
 // eslint-disable-next-line @typescript-eslint/no-non-null-asserted-optional-chain
