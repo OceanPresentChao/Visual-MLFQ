@@ -1,11 +1,10 @@
 <script setup lang="ts">
 import { fabric } from 'fabric'
-import { getCurrentInstance, onMounted, ref } from 'vue'
-import { ReadyQueue, RunningQueue, WaitQueue } from '@/class/Queue'
+import { type Ref, getCurrentInstance, onMounted, ref, watch } from 'vue'
+import { type Queue, ReadyQueue, RunningQueue, WaitQueue } from '@/class/Queue'
 import { Process } from '@/class/Process'
-import type{ Queue } from '@/class/Queue'
+import { drawProcess, drawQueue } from '@/utils/draw'
 import * as ui from '@/config/ui'
-import { bindAttr2Ref } from '@/utils/tool'
 const emits = defineEmits(['changestatus'])
 const { proxy } = getCurrentInstance()!
 // eslint-disable-next-line @typescript-eslint/no-non-null-asserted-optional-chain
@@ -16,7 +15,7 @@ const processSetting = ref({
   total: 0,
   count: 0,
 })
-const processes: Process[] = []
+const processes: Ref<Process>[] = []
 const readyQueues: ReadyQueue[] = []
 const waitQueue = new WaitQueue('等待队列')
 const runningQueue = new RunningQueue('运行队列')
@@ -53,48 +52,6 @@ function drawAllQueues(canvas: fabric.Canvas) {
   })
 }
 
-function drawQueue(value: Queue, canvas: fabric.Canvas, options: fabric.IGroupOptions = {}) {
-  let items: fabric.Object[] = []
-  let count = 0
-  const nametext = new fabric.Text(`${value.name}`, {
-    fontSize: ui.textOptions.fontSize!,
-    originX: 'center',
-    originY: 'left',
-    fill: '#f1ca17',
-    top: (ui.textOptions.fontSize! + 10) * count++,
-  })
-  if (value instanceof ReadyQueue) {
-    const pritext = new fabric.Text(`优先级:${value.priority}`, {
-      fontSize: ui.textOptions.fontSize!,
-      originX: 'center',
-      originY: 'left',
-      top: (ui.textOptions.fontSize! + 10) * count++,
-    })
-    const timetext = new fabric.Text(`时间片长度:${value.timeSlice}`, {
-      fontSize: ui.textOptions.fontSize!,
-      originX: 'center',
-      originY: 'left',
-      top: (ui.textOptions.fontSize! + 10) * count++,
-    })
-    items.push(pritext, timetext)
-  }
-  const sizetext = new fabric.Text(`队列长度:${value.size}`, {
-    fontSize: ui.textOptions.fontSize!,
-    originX: 'center',
-    originY: 'left',
-    top: (ui.textOptions.fontSize! + 10) * count++,
-  })
-  const rect = new fabric.Rect(Object.assign({ }, ui.queueOptions.get(value.category)))
-  items = [rect, nametext, sizetext, ...items]
-  const group = new fabric.Group(items, options)
-  value.group = group
-  canvas.add(group)
-}
-
-function drawProcess(value: Process, canvas: fabric.Canvas, option: fabric.IGroupOptions = {}) {
-
-}
-
 function addProcess() {
   if (!canvas)
     return
@@ -104,17 +61,19 @@ function addProcess() {
     processSetting.value.taskTime = Number(processSetting.value.taskTime.toFixed(1))
   }
   const checkSetting = () => {
-    if (processes.findIndex((value) => {
-      return processSetting.value.name === value.name
+    if (processes.findIndex((v) => {
+      return processSetting.value.name === v.value.name
     }) >= 0 || processSetting.value.taskTime <= 0)
       return false
     return true
   }
   if (checkSetting()) {
     modifySetting()
-    const newPro = new Process(processSetting.value.name, processSetting.value.taskTime)
+    const newPro = ref(new Process(processSetting.value.name, processSetting.value.taskTime))
     processes.push(newPro)
-    drawProcess(newPro, canvas)
+    watch(newPro, (v) => {
+      drawProcess(v, canvas!)
+    }, { immediate: true })
     processSetting.value.total++
     processSetting.value.total++
   }
