@@ -62,7 +62,7 @@ export function drawProcess(value: Process, canvas: fabric.Canvas, options: fabr
   const nameText = new fabric.IText(`${value.name}`, Object.assign({ top: (ui.textOptions.fontSize! + 10) * count++ }, ui.textOptions))
   const totalText = new fabric.IText(`任务总时间:${value.taskTime}`, Object.assign({ top: (ui.textOptions.fontSize! + 10) * count++ }, ui.textOptions))
   const remainText = new fabric.IText(`任务剩余时间:${value.remainingTime}`, Object.assign({ top: (ui.textOptions.fontSize! + 10) * count++ }, ui.textOptions))
-  const sliceText = new fabric.IText(`时间片剩余时间:${value.sliceTime}`, Object.assign({ top: (ui.textOptions.fontSize! + 10) * count++ }, ui.textOptions))
+  const sliceText = new fabric.IText(`时间片剩余时间:${value.remainSliceTime}`, Object.assign({ top: (ui.textOptions.fontSize! + 10) * count++ }, ui.textOptions))
   const items: fabric.Object[] = [circle, nameText, totalText, remainText, sliceText]
   const group = new fabric.Group(items, options)
   canvas.add(group)
@@ -77,5 +77,5 @@ export function renderProcess(value: Process) {
   value.group.nameText.set('text', `进程名称:${value.name}`)
   value.group.totalText.set('text', `任务总时间:${value.taskTime}`)
   value.group.remainText.set('text', `任务剩余时间:${value.remainingTime}`)
-  value.group.sliceText.set('text', `时间片剩余时间:${value.sliceTime}`)
+  value.group.sliceText.set('text', `时间片剩余时间:${value.remainSliceTime}`)
 }

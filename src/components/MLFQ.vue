@@ -5,6 +5,7 @@ import { type Queue, ReadyQueue, RunningQueue, WaitQueue } from '@/class/Queue'
 import { Process } from '@/class/Process'
 import { drawProcess, drawQueue, renderProcess } from '@/core/draw'
 import * as ui from '@/config/ui'
+import { runProcess } from '@/core/logitc'
 const emits = defineEmits(['changestatus'])
 const { proxy } = getCurrentInstance()!
 // eslint-disable-next-line @typescript-eslint/no-non-null-asserted-optional-chain
@@ -20,9 +21,9 @@ const readyQueues: ReadyQueue[] = []
 const waitQueue = new WaitQueue('等待队列')
 const runningQueue = new RunningQueue('运行队列')
 let canvas: fabric.Canvas | null = null
-initReadyQueues()
 
 onMounted(() => {
+  initReadyQueues()
   canvas = new fabric.Canvas('c', {
     backgroundColor: 'rgb(100,100,200)',
     selectionLineWidth: 2,
@@ -30,7 +31,7 @@ onMounted(() => {
     width: 1500,
     // ...
   })
-  // drawQueues(canvas)
+  drawAllQueues(canvas)
 })
 
 function initReadyQueues() {
@@ -60,8 +61,9 @@ function addProcess() {
     const newPro = ref(new Process(processSetting.value.name, processSetting.value.taskTime))
     processes.push(newPro)
     newPro.value.group = drawProcess(newPro.value, canvas!)
-    watch(newPro, (v) => {
+    watch((newPro), (v) => {
       renderProcess(v)
+      canvas?.renderAll()
     }, { immediate: true })
     processSetting.value.total++
     processSetting.value.total++

@@ -9,15 +9,20 @@ export class Process {
   taskTime: number
   /** 任务剩余时间 */
   remainingTime: number
-  /** 在某层队列消耗的总时间 */
-  sliceTime: number
+  /** 在某层队列剩余的总时间 */
+  remainSliceTime: number
+  /** 进程上一次所处队列的优先级 */
+  priority: number
+  status: ProcessStatus
   group: ReturnType<typeof drawProcess> | null
   constructor(name: string, taskTime: number) {
     this.name = name
     this.id = uuid.v1()
     this.taskTime = taskTime
     this.remainingTime = taskTime
-    this.sliceTime = 0
+    this.remainSliceTime = 0
     this.group = null
+    this.status = 'ready'
+    this.priority = -1
   }
 }

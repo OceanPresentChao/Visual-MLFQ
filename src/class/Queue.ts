@@ -1,4 +1,5 @@
 import { v1 } from 'uuid'
+import type { Ref } from 'vue'
 import type { Process } from '@/class/Process'
 import type { drawQueue } from '@/core/draw'
 export type QueueType = 'ready' | 'running' | 'wait'
@@ -9,7 +10,7 @@ export class Queue {
   name: string
   limit: number
   size: number
-  list: Process[]
+  list: Ref<Process>[]
   group: ReturnType<typeof drawQueue> | null
   constructor(type: QueueType, name: string) {
     this.category = type
