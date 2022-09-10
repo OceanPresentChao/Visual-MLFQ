@@ -20,6 +20,8 @@ const processes: Ref<Process>[] = []
 const readyQueues: ReadyQueue[] = []
 const waitQueue = new WaitQueue('等待队列')
 const runningQueue = new RunningQueue('运行队列')
+const queue2Group: Map<Queue, ReturnType<typeof drawQueue>> = new Map()
+const process2Group: Map<Process, ReturnType<typeof drawProcess>> = new Map()
 let canvas: fabric.Canvas | null = null
 
 onMounted(() => {
@@ -47,9 +49,10 @@ function initReadyQueues() {
 function drawAllQueues(canvas: fabric.Canvas) {
   const queues: Queue[] = [...readyQueues, waitQueue, runningQueue]
   queues.forEach((v, i) => {
-    v.group = drawQueue(v, canvas, {
+    const group = drawQueue(v, canvas, {
       top: (ui.defaultQueueOptions.height! + 20) * i + 10, left: 100,
     })
+    queue2Group.set(v, group)
   })
 }
 
@@ -60,13 +63,15 @@ function addProcess() {
     modifySetting()
     const newPro = ref(new Process(processSetting.value.name, processSetting.value.taskTime))
     processes.push(newPro)
-    newPro.value.group = drawProcess(newPro.value, canvas!)
+    const group = drawProcess(newPro.value, canvas!)
+    process2Group.set(newPro.value, group)
     watch((newPro), (v) => {
-      renderProcess(v)
-      canvas?.renderAll()
-    }, { immediate: true })
+      renderProcess(v, group)
+      canvas?.requestRenderAll()
+    }, { immediate: true, deep: true })
     processSetting.value.total++
     processSetting.value.total++
+    runProcess(newPro, readyQueues)
   }
   else {
     // eslint-disable-next-line no-alert

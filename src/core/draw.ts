@@ -42,14 +42,14 @@ export function drawQueue(value: Queue, canvas: fabric.Canvas, options: fabric.I
   }
 }
 
-export function renderQueue(value: Queue) {
+export function renderQueue(value: Queue, group: ReturnType<typeof drawQueue>) {
   if (!value.group)
     return
-  value.group.nameText.set('text', `${value.name}`)
-  value.group.sizeText.set('text', `队列长度:${value.size}`)
+  group.nameText.set('text', `${value.name}`)
+  group.sizeText.set('text', `队列长度:${value.size}`)
   if (value instanceof ReadyQueue) {
-    value.group.priorityText!.set('text', `优先级:${value.priority}`)
-    value.group.sliceText!.set('text', `时间片长度:${value.timeSlice}`)
+    group.priorityText!.set('text', `优先级:${value.priority}`)
+    group.sliceText!.set('text', `时间片长度:${value.timeSlice}`)
   }
 }
 
@@ -71,11 +71,11 @@ export function drawProcess(value: Process, canvas: fabric.Canvas, options: fabr
   }
 }
 
-export function renderProcess(value: Process) {
-  if (!value.group)
+export function renderProcess(value: Process, group: ReturnType<typeof drawProcess>) {
+  if (!group)
     return
-  value.group.nameText.set('text', `进程名称:${value.name}`)
-  value.group.totalText.set('text', `任务总时间:${value.taskTime}`)
-  value.group.remainText.set('text', `任务剩余时间:${value.remainingTime}`)
-  value.group.sliceText.set('text', `时间片剩余时间:${value.remainSliceTime}`)
+  group.nameText.set('text', `进程名称:${value.name}`)
+  group.totalText.set('text', `任务总时间:${value.taskTime}`)
+  group.remainText.set('text', `任务剩余时间:${value.remainingTime}`)
+  group.sliceText.set('text', `时间片剩余时间:${value.remainSliceTime}`)
 }
