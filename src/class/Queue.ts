@@ -1,8 +1,8 @@
 import { v1 } from 'uuid'
-import type { fabric } from 'fabric'
 import type { Process } from '@/class/Process'
+import type { drawQueue } from '@/core/draw'
 export type QueueType = 'ready' | 'running' | 'wait'
-export const string2ElMap = new Map([['name', 1], ['rect', 0], ['size', 2], ['priority', 3], ['timeslice', 4]])
+
 export class Queue {
   readonly category: QueueType
   id: string
@@ -10,7 +10,7 @@ export class Queue {
   limit: number
   size: number
   list: Process[]
-  group: fabric.Group | null
+  group: ReturnType<typeof drawQueue> | null
   constructor(type: QueueType, name: string) {
     this.category = type
     this.limit = Infinity
@@ -19,12 +19,6 @@ export class Queue {
     this.name = name
     this.id = v1()
     this.group = null
-  }
-
-  getEl(key: string) {
-    if (!this.group || !string2ElMap.has(key))
-      return
-    return this.group.item(string2ElMap.get(key)!)
   }
 }
 

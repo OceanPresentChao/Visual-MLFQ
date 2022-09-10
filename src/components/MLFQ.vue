@@ -3,7 +3,7 @@ import { fabric } from 'fabric'
 import { type Ref, getCurrentInstance, onMounted, ref, watch } from 'vue'
 import { type Queue, ReadyQueue, RunningQueue, WaitQueue } from '@/class/Queue'
 import { Process } from '@/class/Process'
-import { drawProcess, drawQueue } from '@/utils/draw'
+import { drawProcess, drawQueue, renderProcess } from '@/core/draw'
 import * as ui from '@/config/ui'
 const emits = defineEmits(['changestatus'])
 const { proxy } = getCurrentInstance()!
@@ -46,7 +46,7 @@ function initReadyQueues() {
 function drawAllQueues(canvas: fabric.Canvas) {
   const queues: Queue[] = [...readyQueues, waitQueue, runningQueue]
   queues.forEach((v, i) => {
-    drawQueue(v, canvas, {
+    v.group = drawQueue(v, canvas, {
       top: (ui.defaultQueueOptions.height! + 20) * i + 10, left: 100,
     })
   })
@@ -55,24 +55,13 @@ function drawAllQueues(canvas: fabric.Canvas) {
 function addProcess() {
   if (!canvas)
     return
-  const modifySetting = () => {
-    if (!processSetting.value.name.trim())
-      processSetting.value.name = `进程${processSetting.value.total}`
-    processSetting.value.taskTime = Number(processSetting.value.taskTime.toFixed(1))
-  }
-  const checkSetting = () => {
-    if (processes.findIndex((v) => {
-      return processSetting.value.name === v.value.name
-    }) >= 0 || processSetting.value.taskTime <= 0)
-      return false
-    return true
-  }
   if (checkSetting()) {
     modifySetting()
     const newPro = ref(new Process(processSetting.value.name, processSetting.value.taskTime))
     processes.push(newPro)
+    newPro.value.group = drawProcess(newPro.value, canvas!)
     watch(newPro, (v) => {
-      drawProcess(v, canvas!)
+      renderProcess(v)
     }, { immediate: true })
     processSetting.value.total++
     processSetting.value.total++
@@ -81,6 +70,19 @@ function addProcess() {
     // eslint-disable-next-line no-alert
     alert('请确保进程名称唯一并且进程时间片大于0')
   }
+}
+
+function modifySetting() {
+  if (!processSetting.value.name.trim())
+    processSetting.value.name = `进程${processSetting.value.total}`
+  processSetting.value.taskTime = Number(processSetting.value.taskTime.toFixed(1))
+}
+function checkSetting() {
+  if (processes.findIndex((v) => {
+    return processSetting.value.name === v.value.name
+  }) >= 0 || processSetting.value.taskTime <= 0)
+    return false
+  return true
 }
 </script>
 
