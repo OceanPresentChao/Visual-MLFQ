@@ -3,7 +3,7 @@ import { fabric } from 'fabric'
 import { type Ref, getCurrentInstance, onMounted, ref, watch } from 'vue'
 import { type Queue, ReadyQueue, RunningQueue, WaitQueue } from '@/class/Queue'
 import { Process } from '@/class/Process'
-import { drawProcess, drawQueue, renderProcess } from '@/core/draw'
+import { drawProcess, drawQueue, renderProcess, renderQueue } from '@/core/draw'
 import * as ui from '@/config/ui'
 import { runProcess } from '@/core/logitc'
 const emits = defineEmits(['changestatus'])
@@ -64,19 +64,25 @@ function addProcess() {
     const newPro = ref(new Process(processSetting.value.name, processSetting.value.taskTime))
     processes.push(newPro)
     const group = drawProcess(newPro.value, canvas!)
-    process2Group.set(newPro.value, group)
     watch((newPro), (v) => {
       renderProcess(v, group)
-      canvas?.requestRenderAll()
+      renderAllQueues()
+      canvas?.renderAll()
     }, { immediate: true, deep: true })
-    processSetting.value.total++
-    processSetting.value.total++
+    process2Group.set(newPro.value, group)
     runProcess(newPro, readyQueues)
+    processSetting.value.total++
+    processSetting.value.count++
   }
   else {
     // eslint-disable-next-line no-alert
     alert('请确保进程名称唯一并且进程时间片大于0')
   }
+}
+
+function renderAllQueues() {
+  for (const [key, value] of queue2Group.entries())
+    renderQueue(key, value)
 }
 
 function modifySetting() {

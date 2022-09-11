@@ -8,15 +8,17 @@ export class Queue {
   id: string
   name: string
   limit: number
-  size: number
   list: Ref<Process>[]
   constructor(type: QueueType, name: string) {
     this.category = type
     this.limit = Infinity
-    this.size = 0
     this.list = []
     this.name = name
     this.id = v1()
+  }
+
+  size() {
+    return this.list.length
   }
 }
 

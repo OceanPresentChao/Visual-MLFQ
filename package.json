@@ -7,7 +7,8 @@
     "preview": "vite preview --port 4173",
     "build-only": "vite build",
     "type-check": "vue-tsc --noEmit",
-    "lint": "eslint --fix"
+    "lint": "eslint --fix",
+    "test": "tsup src/test/index.ts"
   },
   "dependencies": {
     "fabric": "^5.2.4",
@@ -15,8 +16,8 @@
     "vue": "^3.2.37"
   },
   "devDependencies": {
-    "@types/fabric": "^4.5.12",
     "@antfu/eslint-config": "^0.26.3",
+    "@types/fabric": "^4.5.12",
     "@types/node": "^16.11.45",
     "@types/uuid": "^8.3.4",
     "@vitejs/plugin-vue": "^3.0.1",
@@ -24,6 +25,7 @@
     "eslint": "^8.23.0",
     "eslint-plugin-vue": "^9.4.0",
     "npm-run-all": "^4.1.5",
+    "tsup": "^6.2.3",
     "typescript": "~4.7.4",
     "vite": "^3.0.1",
     "vue-tsc": "^0.38.8"

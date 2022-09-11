@@ -22,4 +22,10 @@ export class Process {
     this.status = 'ready'
     this.priority = -1
   }
+
+  modifyTime() {
+    this.taskTime = Number(this.taskTime.toFixed(1))
+    this.remainSliceTime = Number(this.remainSliceTime.toFixed(1))
+    this.remainingTime = Number(this.remainingTime.toFixed(1))
+  }
 }

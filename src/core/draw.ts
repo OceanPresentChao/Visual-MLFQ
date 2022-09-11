@@ -11,7 +11,7 @@ export function drawQueue(value: Queue, canvas: fabric.Canvas, options: fabric.I
     fill: '#f1ca17',
     top: (ui.textOptions.fontSize! + 10) * count++,
   })
-  const sizeText = new fabric.IText(`队列长度:${value.size}`, {
+  const sizeText = new fabric.IText(`队列长度:${value.size()}`, {
     fontSize: ui.textOptions.fontSize!,
     originX: 'center',
     originY: 'left',
@@ -43,10 +43,10 @@ export function drawQueue(value: Queue, canvas: fabric.Canvas, options: fabric.I
 }
 
 export function renderQueue(value: Queue, group: ReturnType<typeof drawQueue>) {
-  if (!value.group)
+  if (!group)
     return
   group.nameText.set('text', `${value.name}`)
-  group.sizeText.set('text', `队列长度:${value.size}`)
+  group.sizeText.set('text', `队列长度:${value.size()}`)
   if (value instanceof ReadyQueue) {
     group.priorityText!.set('text', `优先级:${value.priority}`)
     group.sliceText!.set('text', `时间片长度:${value.timeSlice}`)
