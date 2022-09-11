@@ -5,7 +5,7 @@ import { type Queue, ReadyQueue, RunningQueue, WaitQueue } from '@/class/Queue'
 import { Process } from '@/class/Process'
 import { drawProcess, drawQueue, renderProcess, renderQueue } from '@/core/draw'
 import * as ui from '@/config/ui'
-import { runProcess } from '@/core/logitc'
+import { insertReadyProcess, runProcess } from '@/core/logitc'
 const emits = defineEmits(['changestatus'])
 const { proxy } = getCurrentInstance()!
 // eslint-disable-next-line @typescript-eslint/no-non-null-asserted-optional-chain
@@ -17,9 +17,9 @@ const processSetting = ref({
   count: 0,
 })
 const processes: Ref<Process>[] = []
-const readyQueues: ReadyQueue[] = []
-const waitQueue = new WaitQueue('等待队列')
-const runningQueue = new RunningQueue('运行队列')
+const readyQueues: Ref<ReadyQueue>[] = []
+const waitQueue = ref(new WaitQueue('等待队列'))
+const runningQueue = ref(new RunningQueue('运行队列'))
 const queue2Group: Map<Queue, ReturnType<typeof drawQueue>> = new Map()
 const process2Group: Map<Process, ReturnType<typeof drawProcess>> = new Map()
 let canvas: fabric.Canvas | null = null
@@ -38,21 +38,25 @@ onMounted(() => {
 
 function initReadyQueues() {
   readyQueueSetting.value.forEach((item, index) => {
-    const newqueue = new ReadyQueue(item.priority, item.timeSlice, `就绪队列${index}`)
+    const newqueue = ref(new ReadyQueue(item.priority, item.timeSlice, `就绪队列${index}`))
     readyQueues.push(newqueue)
   })
-  readyQueues.sort((a: ReadyQueue, b: ReadyQueue) => {
-    return b.priority - a.priority
+  readyQueues.sort((a: Ref<ReadyQueue>, b: Ref<ReadyQueue>) => {
+    return b.value.priority - a.value.priority
   })
 }
 
 function drawAllQueues(canvas: fabric.Canvas) {
-  const queues: Queue[] = [...readyQueues, waitQueue, runningQueue]
-  queues.forEach((v, i) => {
-    const group = drawQueue(v, canvas, {
+  const queues: Ref<Queue>[] = [...readyQueues, waitQueue, runningQueue]
+  queues.forEach((q, i) => {
+    const group = drawQueue(q.value, canvas, {
       top: (ui.defaultQueueOptions.height! + 20) * i + 10, left: 100,
     })
-    queue2Group.set(v, group)
+    watch(q, (v) => {
+      renderQueue(v, group)
+      canvas?.renderAll()
+    }, { immediate: true, deep: true })
+    queue2Group.set(q.value, group)
   })
 }
 
@@ -66,11 +70,10 @@ function addProcess() {
     const group = drawProcess(newPro.value, canvas!)
     watch((newPro), (v) => {
       renderProcess(v, group)
-      renderAllQueues()
       canvas?.renderAll()
     }, { immediate: true, deep: true })
     process2Group.set(newPro.value, group)
-    runProcess(newPro, readyQueues)
+    insertReadyProcess(newPro, { readyQueues, runningQueue, waitQueue, processes })
     processSetting.value.total++
     processSetting.value.count++
   }
@@ -78,11 +81,6 @@ function addProcess() {
     // eslint-disable-next-line no-alert
     alert('请确保进程名称唯一并且进程时间片大于0')
   }
-}
-
-function renderAllQueues() {
-  for (const [key, value] of queue2Group.entries())
-    renderQueue(key, value)
 }
 
 function modifySetting() {
@@ -110,6 +108,7 @@ function checkSetting() {
       <canvas id="c" />
     </main>
     <footer>
+      {{ runningQueue.list }}
       <label>进程名称: </label>
       <input v-model="processSetting.name" type="text">
       <label>进程任务总时间: </label>

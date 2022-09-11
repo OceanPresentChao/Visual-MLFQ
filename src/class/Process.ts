@@ -10,8 +10,8 @@ export class Process {
   remainingTime: number
   /** 在某层队列剩余的总时间 */
   remainSliceTime: number
-  /** 进程上一次所处队列的优先级 */
-  priority: number
+  /** 进程上一次所处队列的序号 */
+  queueIndex: number
   status: ProcessStatus
   constructor(name: string, taskTime: number) {
     this.name = name
@@ -20,7 +20,7 @@ export class Process {
     this.remainingTime = taskTime
     this.remainSliceTime = 0
     this.status = 'ready'
-    this.priority = -1
+    this.queueIndex = -1
   }
 
   modifyTime() {
