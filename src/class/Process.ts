@@ -1,5 +1,5 @@
 import * as uuid from 'uuid'
-export type ProcessStatus = 'running' | 'wait' | 'ready'
+export type ProcessStatus = 'running' | 'wait' | 'ready' | 'finished'
 
 export class Process {
   id: string

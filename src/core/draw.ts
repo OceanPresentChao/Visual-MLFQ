@@ -78,4 +78,8 @@ export function renderProcess(value: Process, group: ReturnType<typeof drawProce
   group.totalText.set('text', `任务总时间:${value.taskTime}`)
   group.remainText.set('text', `任务剩余时间:${value.remainingTime}`)
   group.sliceText.set('text', `时间片剩余时间:${value.remainSliceTime}`)
+  if (value.status === 'finished') {
+    group.nameText.set('text', `进程名称:${value.name}(已完成)`)
+    group.circle.set('fill', 'red')
+  }
 }

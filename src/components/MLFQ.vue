@@ -74,8 +74,9 @@ function addProcess() {
     }, { immediate: true, deep: true })
     process2Group.set(newPro.value, group)
     insertReadyProcess(newPro, { readyQueues, runningQueue, waitQueue, processes })
-    processSetting.value.total++
     processSetting.value.count++
+    processSetting.value.total++
+    processSetting.value.name = ''
   }
   else {
     // eslint-disable-next-line no-alert
@@ -108,7 +109,6 @@ function checkSetting() {
       <canvas id="c" />
     </main>
     <footer>
-      {{ runningQueue.list }}
       <label>进程名称: </label>
       <input v-model="processSetting.name" type="text">
       <label>进程任务总时间: </label>

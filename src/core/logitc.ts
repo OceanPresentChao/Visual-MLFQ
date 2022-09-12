@@ -21,22 +21,29 @@ export function insertReadyProcess(process: Ref<Process>, context: MLFQContext) 
       readyQueues[queueIndex].value.list.push(process)
     }
     else {
-      if (process.value.remainSliceTime <= 0) {
-        queueIndex++
-        process.value.remainSliceTime = readyQueues[queueIndex].value.timeSlice
-        readyQueues[queueIndex].value.list.push(process)
+      if (process.value.remainingTime > 0) {
+        if (process.value.remainSliceTime <= 0) {
+          // 若还未到最下级就绪队列则下移，否则一直呆在最底层
+          queueIndex = queueIndex < readyQueues.length - 1 ? queueIndex + 1 : readyQueues.length - 1
+          process.value.remainSliceTime = readyQueues[queueIndex].value.timeSlice
+          readyQueues[queueIndex].value.list.push(process)
+        }
+        else {
+          readyQueues[queueIndex].value.list.unshift(process)
+        }
       }
       else {
-        readyQueues[queueIndex].value.list.unshift(process)
+        return
       }
     }
     process.value.queueIndex = queueIndex
     process.value.status = 'ready'
-    runProcess(process, context)
+    const nextProcess = chooseReadyProcess(context)
+    if (nextProcess)
+      runProcess(nextProcess, context)
   }
   catch (error) {
     console.error(error)
-    return null
   }
 }
 
@@ -44,7 +51,7 @@ export function runProcess(process: Ref<Process>, context: MLFQContext) {
   if (process.value.queueIndex < 0)
     throw new Error('进程运行前未被加入就绪队列')
   const { runningQueue } = context
-  if (runningQueue.value.list.length > 0)
+  if (runningQueue.value.list.length > 0 || process.value.status === 'running')
     return
   removeProcess(process, context)
   runningQueue.value.list.push(process)
@@ -56,6 +63,12 @@ export function runProcess(process: Ref<Process>, context: MLFQContext) {
     if (process.value.remainingTime <= 0 || process.value.remainSliceTime <= 0) {
       clearInterval(timer)
       removeProcess(process, context)
+      // 如果时间片用完任务仍未结束则加入下一级就绪队列
+      if (process.value.remainingTime > 0)
+        insertReadyProcess(process, context)
+      else
+        process.value.status = 'finished'
+
       const nextProcess = chooseReadyProcess(context)
       if (nextProcess)
         runProcess(nextProcess, context)
