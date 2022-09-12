@@ -106,3 +106,11 @@ function chooseReadyProcess(context: MLFQContext) {
   })
   return readyProcess
 }
+
+export function handleIORequest(requestTime: number, context: MLFQContext) {
+  const { readyQueues, runningQueue } = context
+  if (runningQueue.value.list.length) {
+    const process = runningQueue.value.list[0]
+    insertWaitProcess(process, context)
+  }
+}

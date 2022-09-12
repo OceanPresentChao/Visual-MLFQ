@@ -1,4 +1,5 @@
 import { fabric } from 'fabric'
+import type { IO } from './../class/IO'
 import * as ui from '@/config/ui'
 import { type Queue, ReadyQueue } from '@/class/Queue'
 import type { Process } from '@/class/Process'
@@ -33,7 +34,7 @@ export function drawQueue(value: Queue, canvas: fabric.Canvas, options: fabric.I
       top: (ui.textOptions.fontSize! + 10) * count++,
     })
   }
-  const rect = new fabric.Rect(Object.assign({}, ui.queueOptions.get(value.category)))
+  const rect = new fabric.Rect(Object.assign({}, ui.defaultQueueOptions))
   const items = [rect, nameText, sizeText, priorityText, sliceText].filter(v => v !== null) as fabric.Object[]
   const group = new fabric.Group(items, options)
   canvas.add(group)
@@ -51,6 +52,7 @@ export function renderQueue(value: Queue, group: ReturnType<typeof drawQueue>) {
     group.priorityText!.set('text', `优先级:${value.priority}`)
     group.sliceText!.set('text', `时间片长度:${value.timeSlice}`)
   }
+  group.rect.set(ui.queueUI.get(value.category)!)
 }
 
 export function drawProcess(value: Process, canvas: fabric.Canvas, options: fabric.IGroupOptions = {}) {
@@ -78,8 +80,36 @@ export function renderProcess(value: Process, group: ReturnType<typeof drawProce
   group.totalText.set('text', `任务总时间:${value.taskTime}`)
   group.remainText.set('text', `任务剩余时间:${value.remainingTime}`)
   group.sliceText.set('text', `时间片剩余时间:${value.remainSliceTime}`)
-  if (value.status === 'finished') {
+  if (value.status === 'finished')
     group.nameText.set('text', `进程名称:${value.name}(已完成)`)
-    group.circle.set('fill', 'red')
+  group.circle.set(ui.processUI.get(value.status)!)
+}
+
+export function drawIO(value: IO, canvas: fabric.Canvas, options: fabric.IGroupOptions = {}) {
+  let count = 0
+  const triangle = new fabric.Triangle({
+    width: 80,
+    height: 80,
+    fill: '#c10e8b',
+  })
+  const nameText = new fabric.IText(`${value.name}`, Object.assign({ top: (ui.textOptions.fontSize! + 10) * count++ }, ui.textOptions))
+  const totalText = new fabric.IText(`任务总时间:${value.requestTime}`, Object.assign({ top: (ui.textOptions.fontSize! + 10) * count++ }, ui.textOptions))
+  const remainText = new fabric.IText(`任务剩余时间:${value.remainingTime}`, Object.assign({ top: (ui.textOptions.fontSize! + 10) * count++ }, ui.textOptions))
+  const items: fabric.Object[] = [triangle, nameText, totalText, remainText]
+  const group = new fabric.Group(items, options)
+  canvas.add(group)
+  return {
+    triangle, nameText, totalText, remainText,
   }
+}
+
+export function renderIO(value: IO, group: ReturnType<typeof drawIO>) {
+  if (!group)
+    return
+  group.nameText.set('text', `进程名称:${value.name}`)
+  group.totalText.set('text', `任务总时间:${value.requestTime}`)
+  group.remainText.set('text', `任务剩余时间:${value.remainingTime}`)
+  if (value.status === 'finished')
+    group.nameText.set('text', `进程名称:${value.name}(已完成)`)
+  group.triangle.set(ui.processUI.get(value.status)!)
 }
