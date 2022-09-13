@@ -1,5 +1,6 @@
 import { fabric } from 'fabric'
-import type { IO } from './../class/IO'
+import { svg } from './svg'
+import type { IO } from '@/class/IO'
 import * as ui from '@/config/ui'
 import { type Queue, ReadyQueue } from '@/class/Queue'
 import type { Process } from '@/class/Process'
