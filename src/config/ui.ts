@@ -20,6 +20,10 @@ queueUI.set('running', {
   fill: '#D81B60',
   stroke: '#880E4F',
 })
+queueUI.set('IO', {
+  fill: '#e79017',
+  stroke: '#f37e11',
+})
 
 const defaultProcessOptions: fabric.ICircleOptions = {
   radius: 50,

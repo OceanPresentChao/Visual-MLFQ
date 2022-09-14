@@ -1,12 +1,13 @@
 <script setup lang="ts">
 import { fabric } from 'fabric'
 import { type Ref, getCurrentInstance, onMounted, ref, watch } from 'vue'
-import { type Queue, ReadyQueue, RunningQueue, WaitQueue } from '@/class/Queue'
+import type { Queue } from '@/class/Queue'
+import { IOQueue, ReadyQueue, RunningQueue, WaitQueue } from '@/class/Queue'
 import { Process } from '@/class/Process'
 import { IO } from '@/class/IO'
 import { drawIO, drawProcess, drawQueue, renderIO, renderProcess, renderQueue } from '@/core/draw'
 import * as ui from '@/config/ui'
-import { insertReadyProcess, runProcess } from '@/core/logitc'
+import { insertIO, insertReadyProcess } from '@/core/logitc'
 const emits = defineEmits(['changestatus'])
 const { proxy } = getCurrentInstance()!
 // eslint-disable-next-line @typescript-eslint/no-non-null-asserted-optional-chain
@@ -16,6 +17,7 @@ interface AddSetting {
   time: number
   total: number
   count: number
+  priority?: number
 }
 const processSetting: Ref<AddSetting> = ref({
   name: '',
@@ -28,12 +30,14 @@ const IOSetting: Ref<AddSetting> = ref({
   time: 1,
   total: 0,
   count: 0,
+  priority: 1,
 })
 const processes: Ref<Process>[] = []
 const IOs: Ref<IO>[] = []
 const readyQueues: Ref<ReadyQueue>[] = []
 const waitQueue = ref(new WaitQueue('等待队列'))
 const runningQueue = ref(new RunningQueue('运行队列'))
+const ioQueue = ref(new IOQueue('IO队列'))
 const queue2Group: Map<Queue, ReturnType<typeof drawQueue>> = new Map()
 const process2Group: Map<Process, ReturnType<typeof drawProcess>> = new Map()
 const IO2Group: Map<IO, ReturnType<typeof drawIO>> = new Map()
@@ -44,7 +48,7 @@ onMounted(() => {
   canvas = new fabric.Canvas('c', {
     backgroundColor: 'rgb(100,100,200)',
     selectionLineWidth: 2,
-    height: (readyQueues.length + 2) * (ui.defaultQueueOptions.height! + 20),
+    height: (readyQueues.length + 3) * (ui.defaultQueueOptions.height! + 20),
     width: 1500,
     // ...
   })
@@ -62,7 +66,7 @@ function initReadyQueues() {
 }
 
 function drawAllQueues(canvas: fabric.Canvas) {
-  const queues: Ref<Queue>[] = [...readyQueues, waitQueue, runningQueue]
+  const queues: Ref<Queue>[] = [...readyQueues, waitQueue, runningQueue, ioQueue]
   queues.forEach((q, i) => {
     const group = drawQueue(q.value, canvas, {
       top: (ui.defaultQueueOptions.height! + 20) * i + 10, left: 100,
@@ -79,7 +83,7 @@ function addProcess() {
   if (!canvas)
     return
   if (checkSetting(processSetting, processes)) {
-    modifySetting(processSetting)
+    modifySetting(processSetting, 'process')
     const newPro = ref(new Process(processSetting.value.name, processSetting.value.time))
     processes.push(newPro)
     const group = drawProcess(newPro.value, canvas!)
@@ -88,7 +92,7 @@ function addProcess() {
       canvas?.renderAll()
     }, { immediate: true, deep: true })
     process2Group.set(newPro.value, group)
-    insertReadyProcess(newPro, { readyQueues, runningQueue, waitQueue, processes })
+    insertReadyProcess(newPro, { readyQueues, runningQueue, waitQueue, processes, ioQueue })
     processSetting.value.count++
     processSetting.value.total++
     processSetting.value.name = ''
@@ -103,8 +107,8 @@ function addIO() {
   if (!canvas)
     return
   if (checkSetting(IOSetting, IOs)) {
-    modifySetting(IOSetting)
-    const newIO = ref(new IO(IOSetting.value.name, IOSetting.value.time))
+    modifySetting(IOSetting, 'IO')
+    const newIO = ref(new IO(IOSetting.value.name, IOSetting.value.time, IOSetting.value.priority!))
     IOs.push(newIO)
     const group = drawIO(newIO.value, canvas!)
     watch((newIO), (v) => {
@@ -112,25 +116,28 @@ function addIO() {
       canvas?.renderAll()
     }, { immediate: true, deep: true })
     IO2Group.set(newIO.value, group)
+    insertIO(newIO, { readyQueues, runningQueue, waitQueue, processes, ioQueue })
     IOSetting.value.count++
     IOSetting.value.total++
     IOSetting.value.name = ''
   }
   else {
     // eslint-disable-next-line no-alert
-    alert('请确保进程名称唯一并且进程时间片大于0')
+    alert('请确保IO名称唯一并且时间和优先级大于0')
   }
 }
 
-function modifySetting(setting: Ref<AddSetting>) {
+function modifySetting(setting: Ref<AddSetting>, type: 'IO' | 'process') {
   if (!setting.value.name.trim())
-    setting.value.name = `进程${setting.value.total}`
+    setting.value.name = `${type}${setting.value.total}`
   setting.value.time = Number(setting.value.time.toFixed(1))
+  if (setting.value.priority)
+    setting.value.priority = Math.ceil(setting.value.priority)
 }
 function checkSetting(setting: Ref<AddSetting>, arr: Ref<Process>[] | Ref<IO>[]) {
-  if (arr.findIndex((v) => {
-    return setting.value.name === v.value.name
-  }) >= 0 || setting.value.time <= 0)
+  if (arr.findIndex(v => setting.value.name === v.value.name) >= 0
+  || setting.value.time <= 0
+  || (setting.value.priority && setting.value.priority <= 0))
     return false
   return true
 }
@@ -161,6 +168,8 @@ function checkSetting(setting: Ref<AddSetting>, arr: Ref<Process>[] | Ref<IO>[])
         <input v-model="IOSetting.name" type="text">
         <label>IO总时间: </label>
         <input v-model="IOSetting.time" type="number" :min="1" :step="0.1">
+        <label>IO优先级: </label>
+        <input v-model="IOSetting.priority" type="number" :min="1" :step="1">
         <button @click="addIO">
           添加IO请求
         </button>

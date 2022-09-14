@@ -1,11 +1,28 @@
 import { fabric } from 'fabric'
+type SVGType = 'process' | 'IO' | 'runQueue' | 'waitQueue' | 'readyQueue'
 interface SVG {
-  type: string
+  type: SVGType
   url: string
 }
 const SVG_PATHS: SVG[] = [{
   type: 'process',
   url: 'atom-solid.svg',
+},
+{
+  type: 'IO',
+  url: 'file-type-light-io.svg',
+},
+{
+  type: 'runQueue',
+  url: 'run-all.svg',
+},
+{
+  type: 'waitQueue',
+  url: 'stop-circle.svg',
+},
+{
+  type: 'readyQueue',
+  url: 'message-queue.svg',
 }]
 
 function loadSVG(svg: SVG): Promise<{ type: string; group: fabric.Object[] }> {
