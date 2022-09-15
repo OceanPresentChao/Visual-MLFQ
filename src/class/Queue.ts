@@ -9,34 +9,34 @@ export class Queue {
   id: string
   name: string
   limit: number
-  waitList: Array<any>
+  list: Array<any>
   constructor(type: QueueType, name: string) {
     this.category = type
     this.limit = Infinity
-    this.waitList = []
+    this.list = []
     this.name = name
     this.id = v1()
   }
 
   size() {
-    return this.waitList.length
+    return this.list.length
   }
 }
 
 export class WaitQueue extends Queue {
-  waitList: Ref<Process>[]
+  list: Ref<Process>[]
   constructor(name: string) {
     super('wait', name)
-    this.waitList = []
+    this.list = []
   }
 }
 
 export class RunningQueue extends Queue {
-  waitList: Ref<Process>[]
+  list: Ref<Process>[]
   timer: number | null
   constructor(name: string) {
     super('running', name)
-    this.waitList = []
+    this.list = []
     this.limit = 1
     this.timer = null
   }
@@ -52,22 +52,22 @@ export class RunningQueue extends Queue {
 export class ReadyQueue extends Queue {
   priority: number
   timeSlice: number
-  waitList: Ref<Process>[]
+  list: Ref<Process>[]
   constructor(priority: number, timeSlice: number, name: string) {
     super('ready', name)
     this.priority = priority
-    this.waitList = []
+    this.list = []
     this.timeSlice = timeSlice
   }
 }
 
 export class IOQueue extends Queue {
-  waitList: Ref<IO>[]
+  list: Ref<IO>[]
   runningList: Ref<IO>[]
   timer: number | null
   constructor(name: string) {
     super('IO', name)
-    this.waitList = []
+    this.list = []
     this.runningList = []
     this.timer = null
   }
@@ -80,11 +80,11 @@ export class IOQueue extends Queue {
   }
 
   insertWaitIO(io: Ref<IO>) {
-    const priIndex = this.waitList.findIndex(v => v.value.priority < io.value.priority)
+    const priIndex = this.list.findIndex(v => v.value.priority < io.value.priority)
     if (priIndex === 0 || priIndex === -1)
-      this.waitList.unshift(io)
+      this.list.unshift(io)
     else
-      this.waitList.splice(priIndex, 0, io)
+      this.list.splice(priIndex, 0, io)
   }
 }
 
