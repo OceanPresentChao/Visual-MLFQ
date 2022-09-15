@@ -80,6 +80,7 @@ export class IOQueue extends Queue {
   }
 
   insertWaitIO(io: Ref<IO>) {
+    io.value.status = 'wait'
     const priIndex = this.list.findIndex(v => v.value.priority < io.value.priority)
     if (priIndex === 0 || priIndex === -1)
       this.list.unshift(io)

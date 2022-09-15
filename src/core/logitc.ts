@@ -13,6 +13,8 @@ export interface MLFQContext {
 
 export function insertReadyProcess(process: Ref<Process>, context: MLFQContext) {
   try {
+    if (process.value.remainingTime <= 0)
+      return
     removeProcess(process, context)
     const { readyQueues } = context
     let queueIndex = process.value.queueIndex
@@ -22,19 +24,14 @@ export function insertReadyProcess(process: Ref<Process>, context: MLFQContext) 
       readyQueues[queueIndex].value.list.push(process)
     }
     else {
-      if (process.value.remainingTime > 0) {
-        if (process.value.remainSliceTime <= 0) {
-          // 若还未到最下级就绪队列则下移，否则一直呆在最底层
-          queueIndex = queueIndex < readyQueues.length - 1 ? queueIndex + 1 : readyQueues.length - 1
-          process.value.remainSliceTime = readyQueues[queueIndex].value.timeSlice
-          readyQueues[queueIndex].value.list.push(process)
-        }
-        else {
-          readyQueues[queueIndex].value.list.unshift(process)
-        }
+      if (process.value.remainSliceTime <= 0) {
+        // 若还未到最下级就绪队列则下移，否则一直呆在最底层
+        queueIndex = queueIndex < readyQueues.length - 1 ? queueIndex + 1 : readyQueues.length - 1
+        process.value.remainSliceTime = readyQueues[queueIndex].value.timeSlice
+        readyQueues[queueIndex].value.list.push(process)
       }
       else {
-        return
+        readyQueues[queueIndex].value.list.unshift(process)
       }
     }
     process.value.queueIndex = queueIndex
@@ -52,7 +49,9 @@ export function runProcess(process: Ref<Process>, context: MLFQContext) {
   if (process.value.queueIndex < 0)
     throw new Error('进程运行前未被加入就绪队列')
   const { runningQueue } = context
-  if (runningQueue.value.list.length > 0 || process.value.status === 'running')
+  if (runningQueue.value.list.length > 0
+    || process.value.status === 'running'
+    || process.value.status === 'finished')
     return
   removeProcess(process, context)
   runningQueue.value.list.push(process)
@@ -87,17 +86,20 @@ export function insertWaitProcess(process: Ref<Process>, context: MLFQContext) {
 }
 
 export function removeProcess(process: Ref<Process>, context: MLFQContext) {
-  if (process.value.queueIndex < 0)
+  if (process.value.queueIndex < 0 || process.value.status === 'finished')
     return
   const { readyQueues, runningQueue, waitQueue } = context
   const readyQueue = readyQueues[process.value.queueIndex]
-  if (process.value.status === 'ready') { readyQueue.value.list.splice(readyQueue.value.list.findIndex(v => v === process), 1) }
+  if (process.value.status === 'ready') {
+    readyQueue.value.list.splice(readyQueue.value.list.findIndex(v => v === process), 1)
+  }
   else if (process.value.status === 'running') {
-    if (runningQueue.value.timer !== null)
-      runningQueue.value.clearTimer()
+    runningQueue.value.clearTimer()
     runningQueue.value.list.splice(runningQueue.value.list.findIndex(v => v === process), 1)
   }
-  else if (process.value.status === 'wait') { waitQueue.value.list.splice(waitQueue.value.list.findIndex(v => v === process), 1) }
+  else if (process.value.status === 'wait') {
+    waitQueue.value.list.splice(waitQueue.value.list.findIndex(v => v === process), 1)
+  }
 }
 
 function chooseReadyProcess(context: MLFQContext) {
@@ -116,7 +118,6 @@ export function insertIO(io: Ref<IO>, context: MLFQContext) {
     const process = runningQueue.value.list[0]
     insertWaitProcess(process, context)
   }
-
   ioQueue.value.insertWaitIO(io)
   if (!ioQueue.value.runningList.length
     || (ioQueue.value.runningList.length > 0 && io.value.priority > ioQueue.value.runningList[0].value.priority))
@@ -125,7 +126,7 @@ export function insertIO(io: Ref<IO>, context: MLFQContext) {
 
 export function runIO(io: Ref<IO>, context: MLFQContext) {
   const { ioQueue, runningQueue, waitQueue } = context
-  if (io.value.status !== 'wait')
+  if (io.value.status !== 'wait' || io.value.remainingTime <= 0)
     return
   if (runningQueue.value.list.length)
     insertWaitProcess(runningQueue.value.list[0], context)
@@ -137,7 +138,6 @@ export function runIO(io: Ref<IO>, context: MLFQContext) {
   }
   else {
     const runningIO = ioQueue.value.runningList[0]
-    runningIO.value.status = 'wait'
     ioQueue.value.insertWaitIO(runningIO)
     ioQueue.value.runningList.splice(0, 1, io)
   }
@@ -152,7 +152,6 @@ export function runIO(io: Ref<IO>, context: MLFQContext) {
       io.value.status = 'finished'
       if (ioQueue.value.list.length)
         runIO(ioQueue.value.list[0], context)
-
       else if (waitQueue.value.list.length)
         runProcess(waitQueue.value.list[0], context)
     }
