@@ -25,9 +25,9 @@ const SVG_PATHS: SVG[] = [{
   url: 'message-queue.svg',
 }]
 
-function loadSVG(svg: SVG): Promise<{ type: string; group: fabric.Object[] }> {
+function loadSVG(svg: SVG): Promise<{ type: SVGType; group: fabric.Object[] }> {
   return new Promise((resolve) => {
-    fabric.loadSVGFromURL(svg.url, (result) => {
+    fabric.loadSVGFromURL(`/src/assets/${svg.url}`, (result) => {
       resolve({
         type: svg.type,
         group: result,
@@ -42,10 +42,10 @@ function loadAllSVGs(svgs: SVG[]) {
 }
 
 function svgArr2Map(svgs: {
-  type: string
+  type: SVGType
   group: fabric.Object[]
-}[]): Map<string, fabric.Object[]> {
-  const result = new Map<string, fabric.Object[]>()
+}[]): Map<SVGType, fabric.Object[]> {
+  const result = new Map<SVGType, fabric.Object[]>()
   for (const v of svgs)
     result.set(v.type, v.group)
   return result

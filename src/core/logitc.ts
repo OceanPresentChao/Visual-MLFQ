@@ -53,9 +53,7 @@ export function runProcess(process: Ref<Process>, context: MLFQContext) {
     || process.value.status === 'running'
     || process.value.status === 'finished')
     return
-  removeProcess(process, context)
-  runningQueue.value.list.push(process)
-  process.value.status = 'running'
+  changeProcess(process, context, 'running')
   runningQueue.value.clearTimer()
   const timer = setInterval(() => {
     process.value.remainSliceTime -= 0.1
@@ -78,11 +76,17 @@ export function runProcess(process: Ref<Process>, context: MLFQContext) {
   return timer
 }
 
-export function insertWaitProcess(process: Ref<Process>, context: MLFQContext) {
+export function changeProcess(process: Ref<Process>, context: MLFQContext, status: 'running' | 'wait') {
   removeProcess(process, context)
-  const { waitQueue } = context
-  waitQueue.value.list.push(process)
-  process.value.status = 'wait'
+  const { waitQueue, runningQueue } = context
+  if (status === 'running') {
+    runningQueue.value.list.push(process)
+    process.value.status = 'running'
+  }
+  else if (status === 'wait') {
+    waitQueue.value.list.push(process)
+    process.value.status = 'wait'
+  }
 }
 
 export function removeProcess(process: Ref<Process>, context: MLFQContext) {
@@ -91,14 +95,16 @@ export function removeProcess(process: Ref<Process>, context: MLFQContext) {
   const { readyQueues, runningQueue, waitQueue } = context
   const readyQueue = readyQueues[process.value.queueIndex]
   if (process.value.status === 'ready') {
-    readyQueue.value.list.splice(readyQueue.value.list.findIndex(v => v === process), 1)
+    const index = readyQueue.value.list.findIndex(v => v === process)
+    readyQueue.value.list.splice(index, index > -1 ? 1 : 0)
   }
   else if (process.value.status === 'running') {
-    runningQueue.value.clearTimer()
-    runningQueue.value.list.splice(runningQueue.value.list.findIndex(v => v === process), 1)
+    const index = runningQueue.value.list.findIndex(v => v === process)
+    runningQueue.value.list.splice(index, index > -1 ? 1 : 0)
   }
   else if (process.value.status === 'wait') {
-    waitQueue.value.list.splice(waitQueue.value.list.findIndex(v => v === process), 1)
+    const index = waitQueue.value.list.findIndex(v => v === process)
+    waitQueue.value.list.splice(index, index > -1 ? 1 : 0)
   }
 }
 
@@ -113,12 +119,9 @@ function chooseReadyProcess(context: MLFQContext) {
 }
 
 export function insertIO(io: Ref<IO>, context: MLFQContext) {
-  const { ioQueue, runningQueue } = context
-  if (runningQueue.value.list.length) {
-    const process = runningQueue.value.list[0]
-    insertWaitProcess(process, context)
-  }
-  ioQueue.value.insertWaitIO(io)
+  const { ioQueue } = context
+  // 先将io加入io等待队列
+  changeIO(io, context, 'wait')
   if (!ioQueue.value.runningList.length
     || (ioQueue.value.runningList.length > 0 && io.value.priority > ioQueue.value.runningList[0].value.priority))
     runIO(io, context)
@@ -128,27 +131,24 @@ export function runIO(io: Ref<IO>, context: MLFQContext) {
   const { ioQueue, runningQueue, waitQueue } = context
   if (io.value.status !== 'wait' || io.value.remainingTime <= 0)
     return
-  if (runningQueue.value.list.length)
-    insertWaitProcess(runningQueue.value.list[0], context)
-  ioQueue.value.runningList.splice(
-    ioQueue.value.runningList.findIndex(v => v === io)
-    , 1)
-  if (!ioQueue.value.runningList.length) {
-    ioQueue.value.runningList.push(io)
+  // 若运行队列有进程，暂停该进程
+  if (runningQueue.value.list.length) {
+    const process = runningQueue.value.list[0]
+    changeProcess(process, context, 'wait')
+    runningQueue.value.clearTimer()
   }
-  else {
+  if (ioQueue.value.runningList.length) {
     const runningIO = ioQueue.value.runningList[0]
-    ioQueue.value.insertWaitIO(runningIO)
-    ioQueue.value.runningList.splice(0, 1, io)
+    changeIO(runningIO, context, 'wait')
+    changeIO(io, context, 'running')
   }
   ioQueue.value.clearTimer()
-  io.value.status = 'running'
   const timer = setInterval(() => {
     io.value.remainingTime -= 0.1
     io.value.modifyTime()
     if (io.value.remainingTime <= 0) {
       ioQueue.value.clearTimer()
-      ioQueue.value.list.splice(ioQueue.value.list.findIndex(v => v === io), 1)
+      removeIO(io, context)
       io.value.status = 'finished'
       if (ioQueue.value.list.length)
         runIO(ioQueue.value.list[0], context)
@@ -157,4 +157,31 @@ export function runIO(io: Ref<IO>, context: MLFQContext) {
     }
   }, 100)
   ioQueue.value.timer = timer
+  return timer
 }
+
+function removeIO(io: Ref<IO>, context: MLFQContext) {
+  const { ioQueue } = context
+  if (io.value.status === 'running') {
+    const index = ioQueue.value.runningList.findIndex(v => v === io)
+    ioQueue.value.runningList.splice(index, index > -1 ? 1 : 0)
+  }
+  else if (io.value.status === 'wait') {
+    const index = ioQueue.value.list.findIndex(v => v === io)
+    ioQueue.value.list.splice(index, index > -1 ? 1 : 0)
+  }
+}
+
+function changeIO(io: Ref<IO>, context: MLFQContext, status: 'running' | 'wait') {
+  const { ioQueue } = context
+  removeIO(io, context)
+  if (status === 'running') {
+    io.value.status = 'running'
+    ioQueue.value.runningList.push(io)
+  }
+  else if (status === 'wait') {
+    io.value.status = 'wait'
+    ioQueue.value.list.push(io)
+  }
+}
+
