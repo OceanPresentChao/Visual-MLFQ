@@ -5,8 +5,10 @@ import type { Queue } from '@/class/Queue'
 import { IOQueue, ReadyQueue, RunningQueue, WaitQueue } from '@/class/Queue'
 import { Process } from '@/class/Process'
 import { IO } from '@/class/IO'
-import { drawIO, drawProcess, drawQueue, renderIO, renderProcess, renderQueue } from '@/core/draw'
+import type { RenderContext } from '@/core/draw'
+import { animateProcess, drawIO, drawProcess, drawQueue, renderIO, renderProcess, renderQueue } from '@/core/draw'
 import * as ui from '@/config/ui'
+import type { MLFQContext } from '@/core/logitc'
 import { insertIO, insertReadyProcess } from '@/core/logitc'
 const emits = defineEmits(['changestatus'])
 const { proxy } = getCurrentInstance()!
@@ -38,10 +40,16 @@ const readyQueues: Ref<ReadyQueue>[] = []
 const waitQueue = ref(new WaitQueue('等待队列'))
 const runningQueue = ref(new RunningQueue('运行队列'))
 const ioQueue = ref(new IOQueue('IO队列'))
+const mlfqContext: MLFQContext = {
+  readyQueues, waitQueue, runningQueue, ioQueue,
+}
 const queue2Group: Map<Queue, ReturnType<typeof drawQueue>> = new Map()
 const process2Group: Map<Process, ReturnType<typeof drawProcess>> = new Map()
 const IO2Group: Map<IO, ReturnType<typeof drawIO>> = new Map()
 let canvas: fabric.Canvas | null = null
+const renderContext: RenderContext = {
+  queue2Group, process2Group, IO2Group, canvas,
+}
 
 onMounted(() => {
   initReadyQueues()
@@ -52,6 +60,7 @@ onMounted(() => {
     width: 1500,
     // ...
   })
+  renderContext.canvas = canvas
   drawAllQueues(canvas)
 })
 
@@ -73,6 +82,10 @@ function drawAllQueues(canvas: fabric.Canvas) {
     })
     watch(q, (v) => {
       renderQueue(v, group)
+      if (v instanceof ReadyQueue) {
+        for (const pro of v.list)
+          animateProcess(pro.value, renderContext, mlfqContext)
+      }
       canvas?.renderAll()
     }, { immediate: true, deep: true })
     queue2Group.set(q.value, group)
@@ -89,10 +102,11 @@ function addProcess() {
     const group = drawProcess(newPro.value, canvas!)
     watch((newPro), (v) => {
       renderProcess(v, group)
+      animateProcess(v, renderContext, mlfqContext)
       canvas?.renderAll()
     }, { immediate: true, deep: true })
     process2Group.set(newPro.value, group)
-    insertReadyProcess(newPro, { readyQueues, runningQueue, waitQueue, processes, ioQueue })
+    insertReadyProcess(newPro, mlfqContext)
     processSetting.value.count++
     processSetting.value.total++
     processSetting.value.name = ''
@@ -116,7 +130,7 @@ function addIO() {
       canvas?.renderAll()
     }, { immediate: true, deep: true })
     IO2Group.set(newIO.value, group)
-    insertIO(newIO, { readyQueues, runningQueue, waitQueue, processes, ioQueue })
+    insertIO(newIO, mlfqContext)
     IOSetting.value.count++
     IOSetting.value.total++
     IOSetting.value.name = ''
@@ -145,14 +159,6 @@ function checkSetting(setting: Ref<AddSetting>, arr: Ref<Process>[] | Ref<IO>[])
 
 <template>
   <div>
-    <main>
-      <div>
-        <button @click="$emit('changestatus', 'setting')">
-          返回
-        </button>
-      </div>
-      <canvas id="c" />
-    </main>
     <footer>
       <div>
         <label>进程名称: </label>
@@ -175,6 +181,14 @@ function checkSetting(setting: Ref<AddSetting>, arr: Ref<Process>[] | Ref<IO>[])
         </button>
       </div>
     </footer>
+    <main>
+      <div>
+        <button @click="$emit('changestatus', 'setting')">
+          返回
+        </button>
+      </div>
+      <canvas id="c" />
+    </main>
   </div>
 </template>
 

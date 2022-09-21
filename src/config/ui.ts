@@ -3,7 +3,7 @@ import type { QueueType } from '@/class/Queue'
 import type { ProcessStatus } from '@/class/Process'
 import type { IOStatus } from '@/class/IO'
 const defaultQueueOptions: fabric.IRectOptions = {
-  height: 100,
+  height: 110,
   width: 500,
   strokeWidth: 5,
 }

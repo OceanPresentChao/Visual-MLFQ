@@ -1,8 +1,15 @@
 import { fabric } from 'fabric'
+import type { MLFQContext } from './logitc'
 import type { IO } from '@/class/IO'
 import * as ui from '@/config/ui'
 import { type Queue, ReadyQueue } from '@/class/Queue'
 import type { Process } from '@/class/Process'
+export interface RenderContext {
+  queue2Group: Map<Queue, ReturnType<typeof drawQueue>>
+  process2Group: Map<Process, ReturnType<typeof drawProcess>>
+  IO2Group: Map<IO, ReturnType<typeof drawIO>>
+  canvas: fabric.Canvas | null
+}
 export function drawQueue(value: Queue, canvas: fabric.Canvas, options: fabric.IGroupOptions = {}) {
   let count = 0
   const nameText = new fabric.IText(`${value.name}`, {
@@ -39,7 +46,7 @@ export function drawQueue(value: Queue, canvas: fabric.Canvas, options: fabric.I
   const group = new fabric.Group(items, options)
   canvas.add(group)
   return {
-    rect, nameText, sizeText, priorityText, sliceText,
+    rect, nameText, sizeText, priorityText, sliceText, group,
   }
 }
 
@@ -69,7 +76,7 @@ export function drawProcess(value: Process, canvas: fabric.Canvas, options: fabr
   const group = new fabric.Group(items, options)
   canvas.add(group)
   return {
-    circle, nameText, totalText, remainText, sliceText,
+    circle, nameText, totalText, remainText, sliceText, group,
   }
 }
 
@@ -99,7 +106,7 @@ export function drawIO(value: IO, canvas: fabric.Canvas, options: fabric.IGroupO
   const group = new fabric.Group(items, options)
   canvas.add(group)
   return {
-    triangle, nameText, totalText, remainText,
+    triangle, nameText, totalText, remainText, group,
   }
 }
 
@@ -112,4 +119,40 @@ export function renderIO(value: IO, group: ReturnType<typeof drawIO>) {
   if (value.status === 'finished')
     group.nameText.set('text', `进程名称:${value.name}(已完成)`)
   group.triangle.set(ui.processUI.get(value.status)!)
+}
+
+export function animateProcess(value: Process, renderContext: RenderContext, mlfqContext: MLFQContext) {
+  const aniOption: Record<string, number | string> = {}
+  const { readyQueues, runningQueue, waitQueue } = mlfqContext
+  const { process2Group, queue2Group, canvas } = renderContext
+  if (value.queueIndex < 0 || !canvas)
+    return
+  const pGroup = process2Group.get(value)!
+  if (value.status === 'ready') {
+    const queue = readyQueues[value.queueIndex]
+    const index = queue.value.list.findIndex(v => v.value.id === value.id)
+    const qGroup = queue2Group.get(queue.value)!
+    aniOption.left = qGroup.group.left! + 120
+    aniOption.left += (ui.defaultProcessOptions.radius! * index * 2)
+    aniOption.top = qGroup.group.top! + 15
+  }
+  else if (value.status === 'running') {
+    const qGroup = queue2Group.get(runningQueue.value)!
+    aniOption.left = qGroup.group.left! + 60
+    aniOption.left += ui.defaultProcessOptions.radius! * runningQueue.value.list.length
+    aniOption.top = qGroup.group.top! + 15
+  }
+  else if (value.status === 'wait') {
+    const qGroup = queue2Group.get(waitQueue.value)!
+    aniOption.left = qGroup.group.left! + 60
+    aniOption.left += ui.defaultProcessOptions.radius! * runningQueue.value.list.length
+    aniOption.top = qGroup.group.top! + 15
+  }
+  else if (value.status === 'finished') {
+    aniOption.left = 1000
+  }
+  pGroup.group.animate(aniOption, {
+    duration: 100,
+    onChange: canvas.renderAll.bind(canvas),
+  })
 }

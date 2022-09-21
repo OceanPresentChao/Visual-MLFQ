@@ -4,7 +4,6 @@ import type { IO } from '@/class/IO'
 import type { IOQueue, ReadyQueue, RunningQueue, WaitQueue } from '@/class/Queue'
 
 export interface MLFQContext {
-  processes: Ref<Process>[]
   readyQueues: Ref<ReadyQueue>[]
   runningQueue: Ref<RunningQueue>
   waitQueue: Ref<WaitQueue>
@@ -31,6 +30,7 @@ export function insertReadyProcess(process: Ref<Process>, context: MLFQContext) 
         readyQueues[queueIndex].value.list.push(process)
       }
       else {
+        // 被io插队重新回来
         readyQueues[queueIndex].value.list.unshift(process)
       }
     }
