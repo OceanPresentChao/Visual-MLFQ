@@ -25,11 +25,6 @@ queueUI.set('IO', {
   stroke: '#f37e118c',
 })
 
-const defaultProcessOptions: fabric.ICircleOptions = {
-  radius: 50,
-  strokeWidth: 5,
-}
-
 const processUI: Map<ProcessStatus, fabric.IGroupOptions> = new Map()
 processUI.set('ready', {
   fill: '#66c18c',
@@ -48,13 +43,7 @@ processUI.set('finished', {
   stroke: '#ede618',
 })
 
-const defaultIOOptions: fabric.ITriangleOptions = {
-  width: 80,
-  height: 80,
-  strokeWidth: 5,
-}
-
-const IOUI: Map<IOStatus, fabric.ITriangleOptions> = new Map()
+const IOUI: Map<IOStatus, fabric.IGroupOptions> = new Map()
 IOUI.set('wait', {
   fill: '#2b73af',
   stroke: '#15559a',
@@ -72,4 +61,4 @@ const textOptions: fabric.ITextOptions = {
   fontSize: 20,
 }
 
-export { queueUI, defaultQueueOptions, textOptions, defaultProcessOptions, processUI, defaultIOOptions, IOUI }
+export { queueUI, defaultQueueOptions, textOptions, processUI, IOUI }

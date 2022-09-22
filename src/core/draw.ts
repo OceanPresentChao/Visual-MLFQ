@@ -1,5 +1,7 @@
 import { fabric } from 'fabric'
+import * as _ from 'lodash'
 import type { MLFQContext } from './logitc'
+import { SVGs } from './svg'
 import type { IO } from '@/class/IO'
 import * as ui from '@/config/ui'
 import { type Queue, ReadyQueue } from '@/class/Queue'
@@ -64,19 +66,16 @@ export function renderQueue(value: Queue, group: ReturnType<typeof drawQueue>) {
 
 export function drawProcess(value: Process, canvas: fabric.Canvas, options: fabric.IGroupOptions = {}) {
   let count = 0
-  const circle = new fabric.Circle({
-    radius: 50,
-    fill: 'green',
-  })
+  const canvEl = new fabric.Group(_.cloneDeep(SVGs.get('process')!))
   const nameText = new fabric.IText(`${value.name}`, Object.assign({ top: (ui.textOptions.fontSize! + 10) * count++ }, ui.textOptions))
   const totalText = new fabric.IText(`任务总时间:${value.taskTime}`, Object.assign({ top: (ui.textOptions.fontSize! + 10) * count++ }, ui.textOptions))
   const remainText = new fabric.IText(`任务剩余时间:${value.remainingTime}`, Object.assign({ top: (ui.textOptions.fontSize! + 10) * count++ }, ui.textOptions))
   const sliceText = new fabric.IText(`时间片剩余时间:${value.remainSliceTime}`, Object.assign({ top: (ui.textOptions.fontSize! + 10) * count++ }, ui.textOptions))
-  const items: fabric.Object[] = [circle, nameText, totalText, remainText, sliceText]
+  const items: fabric.Object[] = [canvEl, nameText, totalText, remainText, sliceText]
   const group = new fabric.Group(items, options)
   canvas.add(group)
   return {
-    circle, nameText, totalText, remainText, sliceText, group,
+    canvEl, nameText, totalText, remainText, sliceText, group,
   }
 }
 
@@ -89,24 +88,24 @@ export function renderProcess(value: Process, group: ReturnType<typeof drawProce
   group.sliceText.set('text', `时间片剩余时间:${value.remainSliceTime}`)
   if (value.status === 'finished')
     group.nameText.set('text', `进程名称:${value.name}(已完成)`)
-  group.circle.set(ui.processUI.get(value.status)!)
+  // group.circle.set(ui.processUI.get(value.status)!)
+  group.canvEl._objects.forEach((obj) => {
+    if (obj.fill)
+      obj.set(ui.processUI.get(value.status)!)
+  })
 }
 
 export function drawIO(value: IO, canvas: fabric.Canvas, options: fabric.IGroupOptions = {}) {
   let count = 0
-  const triangle = new fabric.Triangle({
-    width: 80,
-    height: 80,
-    fill: '#c10e8b',
-  })
+  const canvEl = new fabric.Group(_.cloneDeep(SVGs.get('IO')!))
   const nameText = new fabric.IText(`${value.name}`, Object.assign({ top: (ui.textOptions.fontSize! + 10) * count++ }, ui.textOptions))
   const totalText = new fabric.IText(`任务总时间:${value.requestTime}`, Object.assign({ top: (ui.textOptions.fontSize! + 10) * count++ }, ui.textOptions))
   const remainText = new fabric.IText(`任务剩余时间:${value.remainingTime}`, Object.assign({ top: (ui.textOptions.fontSize! + 10) * count++ }, ui.textOptions))
-  const items: fabric.Object[] = [triangle, nameText, totalText, remainText]
+  const items: fabric.Object[] = [canvEl, nameText, totalText, remainText]
   const group = new fabric.Group(items, options)
   canvas.add(group)
   return {
-    triangle, nameText, totalText, remainText, group,
+    canvEl, nameText, totalText, remainText, group,
   }
 }
 
@@ -118,7 +117,10 @@ export function renderIO(value: IO, group: ReturnType<typeof drawIO>) {
   group.remainText.set('text', `任务剩余时间:${value.remainingTime}`)
   if (value.status === 'finished')
     group.nameText.set('text', `进程名称:${value.name}(已完成)`)
-  group.triangle.set(ui.processUI.get(value.status)!)
+  group.canvEl._objects.forEach((obj) => {
+    if (obj.fill)
+      obj.set(ui.IOUI.get(value.status)!)
+  })
 }
 
 export function animateProcess(value: Process, renderContext: RenderContext, mlfqContext: MLFQContext) {
@@ -130,28 +132,56 @@ export function animateProcess(value: Process, renderContext: RenderContext, mlf
   const pGroup = process2Group.get(value)!
   if (value.status === 'ready') {
     const queue = readyQueues[value.queueIndex]
-    const index = queue.value.list.findIndex(v => v.value.id === value.id)
+    const index = queue.value.list.findIndex(v => v.value === value)
     const qGroup = queue2Group.get(queue.value)!
-    aniOption.left = qGroup.group.left! + 120
-    aniOption.left += (ui.defaultProcessOptions.radius! * index * 2)
+    aniOption.left = qGroup.group.left!
+    aniOption.left += pGroup.group.width! * (index + 1)
     aniOption.top = qGroup.group.top! + 15
   }
   else if (value.status === 'running') {
     const qGroup = queue2Group.get(runningQueue.value)!
-    aniOption.left = qGroup.group.left! + 60
-    aniOption.left += ui.defaultProcessOptions.radius! * runningQueue.value.list.length
+    aniOption.left = qGroup.group.left!
+    aniOption.left += pGroup.group.width! * runningQueue.value.list.length
     aniOption.top = qGroup.group.top! + 15
   }
   else if (value.status === 'wait') {
     const qGroup = queue2Group.get(waitQueue.value)!
-    aniOption.left = qGroup.group.left! + 60
-    aniOption.left += ui.defaultProcessOptions.radius! * runningQueue.value.list.length
+    aniOption.left = qGroup.group.left!
+    aniOption.left += pGroup.group.width! * waitQueue.value.list.length
     aniOption.top = qGroup.group.top! + 15
   }
   else if (value.status === 'finished') {
     aniOption.left = 1000
   }
   pGroup.group.animate(aniOption, {
+    duration: 100,
+    onChange: canvas.renderAll.bind(canvas),
+  })
+}
+
+export function animateIO(value: IO, renderContext: RenderContext, mlfqContext: MLFQContext) {
+  const aniOption: Record<string, number | string> = {}
+  const { ioQueue } = mlfqContext
+  const { IO2Group, queue2Group, canvas } = renderContext
+  if (!canvas)
+    return
+  const iGroup = IO2Group.get(value)!
+  const qGroup = queue2Group.get(ioQueue.value)!
+  if (value.status === 'running') {
+    aniOption.left = qGroup.group.left!
+    aniOption.left += iGroup.group.width! * ioQueue.value.runningList.length
+    aniOption.top = qGroup.group.top! + 15
+  }
+  else if (value.status === 'wait') {
+    const index = ioQueue.value.list.findIndex(v => v.value === value)
+    aniOption.left = qGroup.group.left!
+    aniOption.left += iGroup.group.width! * (index + 2)
+    aniOption.top = qGroup.group.top! + 15
+  }
+  else if (value.status === 'finished') {
+    aniOption.left = 1000
+  }
+  iGroup.group.animate(aniOption, {
     duration: 100,
     onChange: canvas.renderAll.bind(canvas),
   })

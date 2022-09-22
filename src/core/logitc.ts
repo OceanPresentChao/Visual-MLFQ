@@ -128,9 +128,9 @@ export function insertIO(io: Ref<IO>, context: MLFQContext) {
 }
 
 export function runIO(io: Ref<IO>, context: MLFQContext) {
-  const { ioQueue, runningQueue, waitQueue } = context
   if (io.value.status !== 'wait' || io.value.remainingTime <= 0)
     return
+  const { ioQueue, runningQueue, waitQueue } = context
   // 若运行队列有进程，暂停该进程
   if (runningQueue.value.list.length) {
     const process = runningQueue.value.list[0]
@@ -140,8 +140,8 @@ export function runIO(io: Ref<IO>, context: MLFQContext) {
   if (ioQueue.value.runningList.length) {
     const runningIO = ioQueue.value.runningList[0]
     changeIO(runningIO, context, 'wait')
-    changeIO(io, context, 'running')
   }
+  changeIO(io, context, 'running')
   ioQueue.value.clearTimer()
   const timer = setInterval(() => {
     io.value.remainingTime -= 0.1
@@ -173,15 +173,15 @@ function removeIO(io: Ref<IO>, context: MLFQContext) {
 }
 
 function changeIO(io: Ref<IO>, context: MLFQContext, status: 'running' | 'wait') {
-  const { ioQueue } = context
   removeIO(io, context)
+  const { ioQueue } = context
   if (status === 'running') {
-    io.value.status = 'running'
     ioQueue.value.runningList.push(io)
+    io.value.status = 'running'
   }
   else if (status === 'wait') {
-    io.value.status = 'wait'
     ioQueue.value.list.push(io)
+    io.value.status = 'wait'
   }
 }
 
