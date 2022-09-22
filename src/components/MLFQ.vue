@@ -56,7 +56,7 @@ onMounted(() => {
   initReadyQueues()
   canvas = new fabric.Canvas('c', {
     selectionLineWidth: 2,
-    height: (readyQueues.length + 3) * (ui.defaultQueueOptions.height! + 20),
+    height: (readyQueues.length + 3) * (ui.defaultQueueOptions.height! + 30),
     width: 1500,
     // ...
   })
@@ -169,29 +169,41 @@ function checkSetting(setting: Ref<AddSetting>, arr: Ref<Process>[] | Ref<IO>[])
     <main>
       <div>
         <button @click="$emit('changestatus', 'setting')">
+          <svg xmlns="http://www.w3.org/2000/svg" width="1em" height="1em" preserveAspectRatio="xMidYMid meet" viewBox="0 0 24 24"><path fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="m2 11l7-9v5c11.953 0 13.332 9.678 13 15c-.502-2.685-.735-7-13-7v5l-7-9Z" /></svg>
           返回
         </button>
       </div>
       <canvas id="c" />
     </main>
-    <footer>
+    <footer style="display:grid;grid-template: repeat(2,1fr)/repeat(4,1fr);row-gap: 1em;padding: 1rem 20%;">
       <div>
         <label>进程名称: </label>
         <input v-model="processSetting.name" type="text">
+      </div>
+      <div>
         <label>进程任务总时间: </label>
         <input v-model="processSetting.time" type="number" :min="1" :step="0.1">
-        <button @click="addProcess">
+      </div>
+      <div />
+      <div>
+        <button class="primary" @click="addProcess">
           添加进程
         </button>
       </div>
       <div>
         <label>IO名称: </label>
         <input v-model="IOSetting.name" type="text">
+      </div>
+      <div>
         <label>IO总时间: </label>
         <input v-model="IOSetting.time" type="number" :min="1" :step="0.1">
+      </div>
+      <div>
         <label>IO优先级: </label>
         <input v-model="IOSetting.priority" type="number" :min="1" :step="1">
-        <button @click="addIO">
+      </div>
+      <div>
+        <button class="primary" @click="addIO">
           添加IO请求
         </button>
       </div>
