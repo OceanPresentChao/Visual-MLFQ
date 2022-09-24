@@ -12,6 +12,8 @@ export class Process {
   remainSliceTime: number
   /** 进程上一次所处队列的序号 */
   queueIndex: number
+  startTime: number
+  endTime: number
   status: ProcessStatus
   constructor(name: string, taskTime: number) {
     this.name = name
@@ -19,6 +21,8 @@ export class Process {
     this.taskTime = taskTime
     this.remainingTime = taskTime
     this.remainSliceTime = 0
+    this.startTime = Date.now()
+    this.endTime = -1
     this.status = 'ready'
     this.queueIndex = -1
   }
@@ -27,5 +31,12 @@ export class Process {
     this.taskTime = Number(this.taskTime.toFixed(1))
     this.remainSliceTime = Number(this.remainSliceTime.toFixed(1))
     this.remainingTime = Number(this.remainingTime.toFixed(1))
+  }
+
+  getCyclingTime() {
+    if (this.status !== 'finished')
+      return null
+    else
+      return this.endTime - this.startTime
   }
 }

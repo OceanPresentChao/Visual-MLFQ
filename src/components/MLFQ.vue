@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { fabric } from 'fabric'
 import { type Ref, getCurrentInstance, onMounted, ref, watch } from 'vue'
+import Statistic from './Statistic.vue'
 import type { Queue } from '@/class/Queue'
 import { IOQueue, ReadyQueue, RunningQueue, WaitQueue } from '@/class/Queue'
 import { Process } from '@/class/Process'
@@ -51,13 +52,15 @@ let canvas: fabric.Canvas | null = null
 const renderContext: RenderContext = {
   queue2Group, process2Group, IO2Group, canvas,
 }
+const isMenuVis = ref(false)
+const statisticInfo = ref({ processes, IOs })
 
 onMounted(() => {
   initReadyQueues()
   canvas = new fabric.Canvas('c', {
     selectionLineWidth: 2,
     height: (readyQueues.length + 3) * (ui.defaultQueueOptions.height! + 30),
-    width: 1500,
+    width: ui.defaultCanvasOptions.width!,
     // ...
   })
   renderContext.canvas = canvas
@@ -162,16 +165,28 @@ function checkSetting(setting: Ref<AddSetting>, arr: Ref<Process>[] | Ref<IO>[])
     return false
   return true
 }
+
+function toggleStatistic() {
+  isMenuVis.value = !isMenuVis.value
+}
 </script>
 
 <template>
   <div>
+    <transition name="fade">
+      <Statistic v-if="isMenuVis" :info="statisticInfo" @toggle="toggleStatistic" />
+    </transition>
     <main>
-      <div>
-        <button @click="$emit('changestatus', 'setting')">
-          <svg xmlns="http://www.w3.org/2000/svg" width="1em" height="1em" preserveAspectRatio="xMidYMid meet" viewBox="0 0 24 24"><path fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="m2 11l7-9v5c11.953 0 13.332 9.678 13 15c-.502-2.685-.735-7-13-7v5l-7-9Z" /></svg>
-          返回
-        </button>
+      <div style="display:flex;">
+        <div>
+          <button @click="$emit('changestatus', 'setting')">
+            <svg xmlns="http://www.w3.org/2000/svg" width="1em" height="1em" preserveAspectRatio="xMidYMid meet" viewBox="0 0 24 24"><path fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="m2 11l7-9v5c11.953 0 13.332 9.678 13 15c-.502-2.685-.735-7-13-7v5l-7-9Z" /></svg>
+            返回
+          </button>
+        </div>
+        <div v-if="!isMenuVis" style="margin-left: auto;cursor: pointer;" @click="toggleStatistic">
+          <svg xmlns="http://www.w3.org/2000/svg" width="2rem" height="2rem" preserveAspectRatio="xMidYMid meet" viewBox="0 0 24 24"><path fill="currentColor" d="M3 2h2v20H3zm7 4h7v2h-7zm0 4h7v2h-7z" /><path fill="currentColor" d="M19 2H6v20h13c1.103 0 2-.897 2-2V4c0-1.103-.897-2-2-2zm0 18H8V4h11v16z" /></svg>
+        </div>
       </div>
       <canvas id="c" />
     </main>
@@ -212,4 +227,13 @@ function checkSetting(setting: Ref<AddSetting>, arr: Ref<Process>[] | Ref<IO>[])
 </template>
 
 <style scoped>
+.fade-enter-active,
+.fade-leave-active {
+  transition: opacity 0.5s ease;
+}
+
+.fade-enter-from,
+.fade-leave-to {
+  opacity: 0;
+}
 </style>

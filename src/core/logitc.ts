@@ -8,6 +8,7 @@ export interface MLFQContext {
   runningQueue: Ref<RunningQueue>
   waitQueue: Ref<WaitQueue>
   ioQueue: Ref<IOQueue>
+
 }
 
 export function insertReadyProcess(process: Ref<Process>, context: MLFQContext) {
@@ -48,8 +49,10 @@ export function insertReadyProcess(process: Ref<Process>, context: MLFQContext) 
 export function runProcess(process: Ref<Process>, context: MLFQContext) {
   if (process.value.queueIndex < 0)
     throw new Error('进程运行前未被加入就绪队列')
-  const { runningQueue } = context
+  const { runningQueue, ioQueue } = context
   if (runningQueue.value.list.length > 0
+    || ioQueue.value.runningList.length > 0
+    || ioQueue.value.list.length > 0
     || process.value.status === 'running'
     || process.value.status === 'finished')
     return
@@ -63,13 +66,16 @@ export function runProcess(process: Ref<Process>, context: MLFQContext) {
       runningQueue.value.clearTimer()
       removeProcess(process, context)
       // 如果时间片用完任务仍未结束则加入下一级就绪队列
-      if (process.value.remainingTime > 0)
+      if (process.value.remainingTime > 0) {
         insertReadyProcess(process, context)
-      else
+      }
+      else {
         process.value.status = 'finished'
-      const nextProcess = chooseReadyProcess(context)
-      if (nextProcess)
-        runProcess(nextProcess, context)
+        process.value.endTime = Date.now()
+        const nextProcess = chooseReadyProcess(context)
+        if (nextProcess)
+          runProcess(nextProcess, context)
+      }
     }
   }, 100)
   runningQueue.value.timer = timer
@@ -150,6 +156,7 @@ export function runIO(io: Ref<IO>, context: MLFQContext) {
       ioQueue.value.clearTimer()
       removeIO(io, context)
       io.value.status = 'finished'
+      io.value.endTime = Date.now()
       if (ioQueue.value.list.length)
         runIO(ioQueue.value.list[0], context)
       else if (waitQueue.value.list.length)

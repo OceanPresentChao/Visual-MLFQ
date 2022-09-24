@@ -151,7 +151,8 @@ export function animateProcess(value: Process, renderContext: RenderContext, mlf
     aniOption.top = qGroup.group.top! + 15
   }
   else if (value.status === 'finished') {
-    aniOption.left = 1000
+    // aniOption.left = 1000
+    canvas.remove(pGroup.group)
   }
   pGroup.group.animate(aniOption, {
     duration: 100,
@@ -179,10 +180,12 @@ export function animateIO(value: IO, renderContext: RenderContext, mlfqContext: 
     aniOption.top = qGroup.group.top! + 15
   }
   else if (value.status === 'finished') {
-    aniOption.left = 1000
+    // aniOption.left = 1000
+    canvas.remove(iGroup.group)
   }
   iGroup.group.animate(aniOption, {
     duration: 100,
     onChange: canvas.renderAll.bind(canvas),
   })
 }
+

@@ -2,9 +2,14 @@ import type { fabric } from 'fabric'
 import type { QueueType } from '@/class/Queue'
 import type { ProcessStatus } from '@/class/Process'
 import type { IOStatus } from '@/class/IO'
+
+const defaultCanvasOptions: fabric.ICanvasOptions = {
+  width: 1200,
+}
+
 const defaultQueueOptions: fabric.IRectOptions = {
   height: 110,
-  width: 500,
+  width: 600,
   strokeWidth: 5,
 }
 const queueUI: Map<QueueType, fabric.IRectOptions> = new Map()
@@ -61,4 +66,4 @@ const textOptions: fabric.ITextOptions = {
   fontSize: 20,
 }
 
-export { queueUI, defaultQueueOptions, textOptions, processUI, IOUI }
+export { queueUI, defaultQueueOptions, textOptions, processUI, IOUI, defaultCanvasOptions }
