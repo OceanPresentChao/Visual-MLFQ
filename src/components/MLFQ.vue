@@ -106,7 +106,7 @@ function addProcess() {
     return
   if (checkSetting(processSetting, processes)) {
     modifySetting(processSetting, 'process')
-    const newPro = ref(new Process(processSetting.value.name, processSetting.value.time))
+    const newPro = ref(new Process(processSetting.value.name, processSetting.value.time)) as Ref<Process>
     processes.push(newPro)
     const group = draw.drawProcess(newPro.value, canvas!)
     process2Group.set(newPro.value, group)

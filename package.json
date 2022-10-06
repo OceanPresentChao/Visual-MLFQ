@@ -11,6 +11,7 @@
     "test": "tsup src/test/index.ts"
   },
   "dependencies": {
+    "echarts": "^5.4.0",
     "fabric": "^5.2.4",
     "uuid": "^9.0.0",
     "vue": "^3.2.37"
