@@ -59,9 +59,7 @@ export function runProcess(process: Ref<Process>, context: MLFQContext) {
   changeProcess(process, context, 'running')
   runningQueue.value.clearTimer()
   const timer = setInterval(() => {
-    process.value.remainSliceTime -= 0.1
-    process.value.remainingTime -= 0.1
-    process.value.modifyTime()
+    process.value.trigger = !process.value.trigger
     if (process.value.remainingTime <= 0 || process.value.remainSliceTime <= 0) {
       runningQueue.value.clearTimer()
       removeProcess(process, context)
@@ -150,8 +148,7 @@ export function runIO(io: Ref<IO>, context: MLFQContext) {
   changeIO(io, context, 'running')
   ioQueue.value.clearTimer()
   const timer = setInterval(() => {
-    io.value.remainingTime -= 0.1
-    io.value.modifyTime()
+    io.value.trigger = !io.value.trigger
     if (io.value.remainingTime <= 0) {
       ioQueue.value.clearTimer()
       removeIO(io, context)
