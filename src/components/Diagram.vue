@@ -1,9 +1,8 @@
 <script setup lang="ts">
-import { type Ref, inject, onMounted, ref, watch } from 'vue'
+import { type Ref, onMounted, ref, watch } from 'vue'
 import type { EChartsOption } from '../utils/echarts'
 import { echarts } from '../utils/echarts'
 import type { Process } from '@/class/Process'
-import type { IO } from '@/class/IO'
 const props = defineProps<{
   process: Ref<Process>
 }>()
@@ -18,16 +17,16 @@ const PieChartData = {
 }
 
 onMounted(() => {
-  watch(props.process, () => {
-    if (echartRef.value) {
+  if (echartRef.value) {
+    const myChart = echarts.init(echartRef.value)
+    watch(props.process, () => {
       initData()
-      const myChart = echarts.init(echartRef.value)
       myChart.setOption(getOption())
       window.onresize = function () {
         myChart.resize()
       }
-    }
-  }, { deep: true, immediate: true })
+    }, { deep: true, immediate: true })
+  }
 })
 
 function initData() {

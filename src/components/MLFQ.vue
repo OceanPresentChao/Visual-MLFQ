@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { fabric } from 'fabric'
-import { type Ref, getCurrentInstance, onMounted, ref, watch } from 'vue'
+import { type Ref, getCurrentInstance, onMounted, provide, ref, watch } from 'vue'
 import Statistic from './Statistic.vue'
 import type { Queue } from '@/class/Queue'
 import { IOQueue, ReadyQueue, RunningQueue, WaitQueue } from '@/class/Queue'
@@ -53,7 +53,8 @@ const renderContext: RenderContext = {
   queue2Group, process2Group, IO2Group, canvas,
 }
 const isMenuVis = ref(false)
-const statisticInfo = ref({ processes, IOs })
+
+provide('statis', processes)
 
 onMounted(() => {
   initReadyQueues()
@@ -174,7 +175,7 @@ function toggleStatistic() {
 <template>
   <div>
     <transition name="fade">
-      <Statistic v-if="isMenuVis" :info="statisticInfo" @toggle="toggleStatistic" />
+      <Statistic v-if="isMenuVis" @toggle="toggleStatistic" />
     </transition>
     <main>
       <div style="display:flex;">
@@ -190,7 +191,10 @@ function toggleStatistic() {
       </div>
       <canvas id="c" />
     </main>
-    <footer style="display:grid;grid-template: repeat(2,1fr)/repeat(4,1fr);row-gap: 1em;padding: 1rem 20%;">
+    <footer
+      style="display:grid;grid-template: repeat(2,1fr)/repeat(4,1fr);row-gap: 1em;padding: 1rem 20%;"
+      :style="{ marginRight: isMenuVis ? '25%' : 0, padding: isMenuVis ? '1rem 10%' : '1rem 20%' }"
+    >
       <div>
         <label>进程名称: </label>
         <input v-model="processSetting.name" type="text">
