@@ -3,7 +3,7 @@ import { fabric } from 'fabric'
 import { type Ref, getCurrentInstance, onMounted, ref, watch } from 'vue'
 import Statistic from './Statistic.vue'
 import type { Queue } from '@/class/Queue'
-import { IOQueue, ReadyQueue, RunningQueue, WaitQueue } from '@/class/Queue'
+import { FinishedQueue, IOQueue, ReadyQueue, RunningQueue, WaitQueue } from '@/class/Queue'
 import { Process } from '@/class/Process'
 import { IO } from '@/class/IO'
 import type { RenderContext } from '@/core/draw'
@@ -41,9 +41,10 @@ const IOs: Ref<IO[]> = ref([])
 const readyQueues: Ref<ReadyQueue>[] = []
 const waitQueue = ref(new WaitQueue('等待队列'))
 const runningQueue = ref(new RunningQueue('运行队列'))
+const finishedQueue = ref(new FinishedQueue('完成队列'))
 const ioQueue = ref(new IOQueue('IO队列'))
 const mlfqContext: MLFQContext = {
-  readyQueues, waitQueue, runningQueue, ioQueue,
+  readyQueues, waitQueue, runningQueue, ioQueue, finishedQueue,
 }
 const queue2Group: Map<string, ReturnType<typeof draw.drawQueue>> = new Map()
 const process2Group: Map<string, ReturnType<typeof draw.drawProcess>> = new Map()
@@ -96,7 +97,7 @@ function drawAllQueues(canvas: fabric.Canvas) {
         }
       }
       if (v instanceof IOQueue) {
-        for (const io of [...v.runningList, ...v.list]) {
+        for (const io of [...v.runningList, ...v.list, ...v.finishedList]) {
           const ioGroup = IO2Group.get(io.id)
           if (ioGroup) {
             draw.renderIO(io, ioGroup)
@@ -107,6 +108,15 @@ function drawAllQueues(canvas: fabric.Canvas) {
       canvas?.renderAll()
     }, { immediate: true, deep: true })
   })
+  watch(finishedQueue, (v) => {
+    for (const pro of v.list) {
+      const proGroup = process2Group.get(pro.id)
+      if (proGroup) {
+        draw.renderProcess(pro, proGroup)
+        draw.animateProcess(pro, renderContext, mlfqContext)
+      }
+    }
+  }, { immediate: true, deep: true })
 }
 
 function addProcess() {

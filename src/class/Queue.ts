@@ -1,7 +1,7 @@
 import { v1 } from 'uuid'
 import type { IO } from './IO'
 import type { Process } from '@/class/Process'
-export type QueueType = 'ready' | 'running' | 'wait' | 'IO'
+export type QueueType = 'ready' | 'running' | 'wait' | 'IO' | 'finished'
 
 export class Queue<T> {
   readonly category: QueueType
@@ -54,11 +54,19 @@ export class ReadyQueue extends Queue<Process> {
   }
 }
 
+export class FinishedQueue extends Queue<Process> {
+  constructor(name: string) {
+    super('finished', name)
+  }
+}
+
 export class IOQueue extends Queue<IO> {
   runningList: IO[]
+  finishedList: IO[]
   constructor(name: string) {
     super('IO', name)
     this.runningList = []
+    this.finishedList = []
   }
 
   size() {

@@ -1,17 +1,18 @@
 import type { Ref } from 'vue'
 import type { Process } from '@/class/Process'
 import type { IO } from '@/class/IO'
-import type { IOQueue, ReadyQueue, RunningQueue, WaitQueue } from '@/class/Queue'
+import type { FinishedQueue, IOQueue, ReadyQueue, RunningQueue, WaitQueue } from '@/class/Queue'
 
 export interface MLFQContext {
   readyQueues: Ref<ReadyQueue>[]
   runningQueue: Ref<RunningQueue>
   waitQueue: Ref<WaitQueue>
   ioQueue: Ref<IOQueue>
+  finishedQueue: Ref<FinishedQueue>
 }
 
 export function startQueueTimers(context: MLFQContext) {
-  const { readyQueues, runningQueue, waitQueue, ioQueue } = context
+  const { readyQueues, runningQueue, waitQueue, ioQueue, finishedQueue } = context
   runningQueue.value.timer = setInterval(() => {
     for (const process of runningQueue.value.list) {
       process.runningTime += 0.1
@@ -26,6 +27,7 @@ export function startQueueTimers(context: MLFQContext) {
         }
         else {
           changeProcess(process, context, 'finished')
+          finishedQueue.value.list.push(process)
           process.endTime = Date.now()
           const nextProcess = chooseReadyProcess(context)
           if (nextProcess)
@@ -41,6 +43,7 @@ export function startQueueTimers(context: MLFQContext) {
       io.modifyTime()
       if (io.remainingTime <= 0) {
         changeIO(io, context, 'finished')
+        ioQueue.value.finishedList.push(io)
         io.endTime = Date.now()
         if (ioQueue.value.list.length) {
           runIO(ioQueue.value.list[0], context)
