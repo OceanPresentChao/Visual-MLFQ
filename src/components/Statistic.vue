@@ -3,30 +3,32 @@ import { computed, inject } from 'vue'
 import type { Ref } from 'vue'
 import Diagram from './Diagram.vue'
 import type { Process } from '@/class/Process'
+const props = defineProps<{
+  info: Process[]
+}>()
 defineEmits(['toggle'])
 const TextUI = new Map([['ready', '#18ee317b'], ['wait', '#38bbf869'], ['running', '#f12f7665'], ['finished', '#ede618']])
-const statis = inject<Ref<Process>[]>('statis')
 const classifiedProcess = computed(() => {
   const result: {
-    wait: Ref<Process>[]
-    ready: Ref<Process>[]
-    running: Ref<Process>[]
-    finished: Ref<Process>[]
+    wait: Process[]
+    ready: Process[]
+    running: Process[]
+    finished: Process[]
   } = {
     wait: [],
     ready: [],
     running: [],
     finished: [],
   }
-  if (statis) {
-    statis.forEach((v: Ref<Process>) => {
-      if (v.value.status === 'ready')
+  if (props.info) {
+    props.info.forEach((v) => {
+      if (v.status === 'ready')
         result.ready.push(v)
-      if (v.value.status === 'running')
+      if (v.status === 'running')
         result.running.push(v)
-      if (v.value.status === 'wait')
+      if (v.status === 'wait')
         result.wait.push(v)
-      if (v.value.status === 'finished')
+      if (v.status === 'finished')
         result.finished.push(v)
     })
   }
@@ -47,7 +49,7 @@ const classifiedProcess = computed(() => {
           {{ key }}
         </h1>
         <div v-for="(pro, index) in val" :key="index">
-          <h2>{{ pro.value.name }}</h2>
+          <h2>{{ pro.name }}</h2>
           <Diagram :process="pro" />
         </div>
       </div>

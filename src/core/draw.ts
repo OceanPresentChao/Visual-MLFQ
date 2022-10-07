@@ -7,12 +7,12 @@ import * as ui from '@/config/ui'
 import { type Queue, ReadyQueue } from '@/class/Queue'
 import type { Process } from '@/class/Process'
 export interface RenderContext {
-  queue2Group: Map<Queue, ReturnType<typeof drawQueue>>
-  process2Group: Map<Process, ReturnType<typeof drawProcess>>
-  IO2Group: Map<IO, ReturnType<typeof drawIO>>
+  queue2Group: Map<string, ReturnType<typeof drawQueue>>
+  process2Group: Map<string, ReturnType<typeof drawProcess>>
+  IO2Group: Map<string, ReturnType<typeof drawIO>>
   canvas: fabric.Canvas | null
 }
-export function drawQueue(value: Queue, canvas: fabric.Canvas, options: fabric.IGroupOptions = {}) {
+export function drawQueue(value: Queue<Process> | Queue<IO>, canvas: fabric.Canvas, options: fabric.IGroupOptions = {}) {
   let count = 0
   const nameText = new fabric.IText(`${value.name}`, {
     fontSize: ui.textOptions.fontSize!,
@@ -52,7 +52,7 @@ export function drawQueue(value: Queue, canvas: fabric.Canvas, options: fabric.I
   }
 }
 
-export function renderQueue(value: Queue, group: ReturnType<typeof drawQueue>) {
+export function renderQueue(value: Queue<Process> | Queue<IO>, group: ReturnType<typeof drawQueue>) {
   if (!group)
     return
   group.nameText.set('text', `${value.name}`)
@@ -129,23 +129,23 @@ export function animateProcess(value: Process, renderContext: RenderContext, mlf
   const { process2Group, queue2Group, canvas } = renderContext
   if (value.queueIndex < 0 || !canvas)
     return
-  const pGroup = process2Group.get(value)!
+  const pGroup = process2Group.get(value.id)!
   if (value.status === 'ready') {
     const queue = readyQueues[value.queueIndex]
-    const index = queue.value.list.findIndex(v => v.value === value)
-    const qGroup = queue2Group.get(queue.value)!
+    const index = queue.value.list.findIndex(v => v === value)
+    const qGroup = queue2Group.get(queue.value.id)!
     aniOption.left = qGroup.group.left!
     aniOption.left += pGroup.group.width! * (index + 1)
     aniOption.top = qGroup.group.top! + 15
   }
   else if (value.status === 'running') {
-    const qGroup = queue2Group.get(runningQueue.value)!
+    const qGroup = queue2Group.get(runningQueue.value.id)!
     aniOption.left = qGroup.group.left!
     aniOption.left += pGroup.group.width! * runningQueue.value.list.length
     aniOption.top = qGroup.group.top! + 15
   }
   else if (value.status === 'wait') {
-    const qGroup = queue2Group.get(waitQueue.value)!
+    const qGroup = queue2Group.get(waitQueue.value.id)!
     aniOption.left = qGroup.group.left!
     aniOption.left += pGroup.group.width! * waitQueue.value.list.length
     aniOption.top = qGroup.group.top! + 15
@@ -166,15 +166,15 @@ export function animateIO(value: IO, renderContext: RenderContext, mlfqContext: 
   const { IO2Group, queue2Group, canvas } = renderContext
   if (!canvas)
     return
-  const iGroup = IO2Group.get(value)!
-  const qGroup = queue2Group.get(ioQueue.value)!
+  const iGroup = IO2Group.get(value.id)!
+  const qGroup = queue2Group.get(ioQueue.value.id)!
   if (value.status === 'running') {
     aniOption.left = qGroup.group.left!
     aniOption.left += iGroup.group.width! * ioQueue.value.runningList.length
     aniOption.top = qGroup.group.top! + 15
   }
   else if (value.status === 'wait') {
-    const index = ioQueue.value.list.findIndex(v => v.value === value)
+    const index = ioQueue.value.list.findIndex(v => v === value)
     aniOption.left = qGroup.group.left!
     aniOption.left += iGroup.group.width! * (index + 2)
     aniOption.top = qGroup.group.top! + 15

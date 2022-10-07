@@ -18,7 +18,6 @@ export class Process {
   readyTime: number
   waitTime: number
   runningTime: number
-  timer: ReturnType<typeof setInterval> | null
   trigger: boolean
   constructor(name: string, taskTime: number) {
     this.name = name
@@ -33,8 +32,6 @@ export class Process {
     this.readyTime = 0
     this.waitTime = 0
     this.runningTime = 0
-    this.timer = null
-    this.startTimer()
     this.trigger = false
   }
 
@@ -56,39 +53,5 @@ export class Process {
       return null
     else
       return this.endTime - this.startTime
-  }
-
-  startTimer() {
-    if (this.timer)
-      return
-    this.timer = setInterval(() => {
-      if (this.status === 'pending') {
-        return
-      }
-      else if (this.status === 'finished') {
-        this.endTime = Date.now()
-        this.clearTimer()
-        return
-      }
-      else if (this.status === 'ready') {
-        this.readyTime += 0.1
-      }
-      else if (this.status === 'wait') {
-        this.waitTime += 0.1
-      }
-      else if (this.status === 'running') {
-        this.runningTime += 0.1
-        this.remainSliceTime -= 0.1
-        this.remainingTime -= 0.1
-      }
-      this.modifyTime()
-    }, 100)
-  }
-
-  clearTimer() {
-    if (!this.timer)
-      return
-    clearInterval(this.timer)
-    this.timer = null
   }
 }

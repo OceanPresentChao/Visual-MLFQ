@@ -4,7 +4,7 @@ import type { EChartsOption } from '../utils/echarts'
 import { echarts } from '../utils/echarts'
 import type { Process } from '@/class/Process'
 const props = defineProps<{
-  process: Ref<Process>
+  process: Process
 }>()
 const echartRef = ref<null | HTMLDivElement>(null)
 const BarChartData = {
@@ -30,12 +30,12 @@ onMounted(() => {
 })
 
 function initData() {
-  BarChartData.charts.taskTime = props.process.value.taskTime
-  BarChartData.charts.remainingTime = props.process.value.remainingTime
-  BarChartData.charts.remainSliceTime = props.process.value.remainSliceTime
-  PieChartData.charts.readyTime = props.process.value.readyTime
-  PieChartData.charts.waitTime = props.process.value.waitTime
-  PieChartData.charts.runningTime = props.process.value.runningTime
+  BarChartData.charts.taskTime = props.process.taskTime
+  BarChartData.charts.remainingTime = props.process.remainingTime
+  BarChartData.charts.remainSliceTime = props.process.remainSliceTime
+  PieChartData.charts.readyTime = props.process.readyTime
+  PieChartData.charts.waitTime = props.process.waitTime
+  PieChartData.charts.runningTime = props.process.runningTime
 }
 
 function getOption(): EChartsOption {

@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { fabric } from 'fabric'
-import { type Ref, getCurrentInstance, onMounted, provide, ref, watch } from 'vue'
+import { type Ref, getCurrentInstance, onMounted, ref, watch } from 'vue'
 import Statistic from './Statistic.vue'
 import type { Queue } from '@/class/Queue'
 import { IOQueue, ReadyQueue, RunningQueue, WaitQueue } from '@/class/Queue'
@@ -10,7 +10,7 @@ import type { RenderContext } from '@/core/draw'
 import type { MLFQContext } from '@/core/logitc'
 import * as draw from '@/core/draw'
 import * as ui from '@/config/ui'
-import { insertIO, insertReadyProcess } from '@/core/logitc'
+import { insertIO, insertReadyProcess, startQueueTimers } from '@/core/logitc'
 import type { ReadyQueueSetting } from '@/config'
 const emits = defineEmits(['changestatus'])
 const { proxy } = getCurrentInstance()!
@@ -36,8 +36,8 @@ const IOSetting: Ref<AddSetting> = ref({
   count: 0,
   priority: 1,
 })
-const processes: Ref<Process>[] = []
-const IOs: Ref<IO>[] = []
+const processes: Ref<Process[]> = ref([])
+const IOs: Ref<IO[]> = ref([])
 const readyQueues: Ref<ReadyQueue>[] = []
 const waitQueue = ref(new WaitQueue('等待队列'))
 const runningQueue = ref(new RunningQueue('运行队列'))
@@ -45,16 +45,14 @@ const ioQueue = ref(new IOQueue('IO队列'))
 const mlfqContext: MLFQContext = {
   readyQueues, waitQueue, runningQueue, ioQueue,
 }
-const queue2Group: Map<Queue, ReturnType<typeof draw.drawQueue>> = new Map()
-const process2Group: Map<Process, ReturnType<typeof draw.drawProcess>> = new Map()
-const IO2Group: Map<IO, ReturnType<typeof draw.drawIO>> = new Map()
+const queue2Group: Map<string, ReturnType<typeof draw.drawQueue>> = new Map()
+const process2Group: Map<string, ReturnType<typeof draw.drawProcess>> = new Map()
+const IO2Group: Map<string, ReturnType<typeof draw.drawIO>> = new Map()
 let canvas: fabric.Canvas | null = null
 const renderContext: RenderContext = {
   queue2Group, process2Group, IO2Group, canvas,
 }
 const isMenuVis = ref(false)
-
-provide('statis', processes)
 
 onMounted(() => {
   initReadyQueues()
@@ -66,6 +64,7 @@ onMounted(() => {
   })
   renderContext.canvas = canvas
   drawAllQueues(canvas)
+  startQueueTimers(mlfqContext)
 })
 
 function initReadyQueues() {
@@ -79,23 +78,31 @@ function initReadyQueues() {
 }
 
 function drawAllQueues(canvas: fabric.Canvas) {
-  const queues: Ref<Queue>[] = [...readyQueues, waitQueue, runningQueue, ioQueue]
+  const queues: Ref<Queue<IO> | Queue<Process>>[] = [...readyQueues, waitQueue, runningQueue, ioQueue]
   queues.forEach((q, i) => {
     const group = draw.drawQueue(q.value, canvas, {
       top: (ui.defaultQueueOptions.height! + 20) * i + 10, left: 100,
     })
-    queue2Group.set(q.value, group)
+    queue2Group.set(q.value.id, group)
     watch(q, (v) => {
       draw.renderQueue(v, group)
-      if (v instanceof ReadyQueue) {
-        for (const pro of v.list)
-          draw.animateProcess(pro.value, renderContext, mlfqContext)
+      if (v instanceof ReadyQueue || v instanceof RunningQueue || v instanceof WaitQueue) {
+        for (const pro of v.list) {
+          const proGroup = process2Group.get(pro.id)
+          if (proGroup) {
+            draw.renderProcess(pro, proGroup)
+            draw.animateProcess(pro, renderContext, mlfqContext)
+          }
+        }
       }
       if (v instanceof IOQueue) {
-        for (const pro of v.list)
-          draw.animateIO(pro.value, renderContext, mlfqContext)
-        for (const pro of v.runningList)
-          draw.animateIO(pro.value, renderContext, mlfqContext)
+        for (const io of [...v.runningList, ...v.list]) {
+          const ioGroup = IO2Group.get(io.id)
+          if (ioGroup) {
+            draw.renderIO(io, ioGroup)
+            draw.animateIO(io, renderContext, mlfqContext)
+          }
+        }
       }
       canvas?.renderAll()
     }, { immediate: true, deep: true })
@@ -107,15 +114,10 @@ function addProcess() {
     return
   if (checkSetting(processSetting, processes)) {
     modifySetting(processSetting, 'process')
-    const newPro = ref(new Process(processSetting.value.name, processSetting.value.time)) as Ref<Process>
-    processes.push(newPro)
-    const group = draw.drawProcess(newPro.value, canvas!)
-    process2Group.set(newPro.value, group)
-    watch((newPro), (v) => {
-      draw.renderProcess(v, group)
-      draw.animateProcess(v, renderContext, mlfqContext)
-      canvas?.renderAll()
-    }, { immediate: true, deep: true })
+    const newPro = new Process(processSetting.value.name, processSetting.value.time)
+    const group = draw.drawProcess(newPro, canvas!)
+    process2Group.set(newPro.id, group)
+    processes.value.push(newPro)
     insertReadyProcess(newPro, mlfqContext)
     processSetting.value.count++
     processSetting.value.total++
@@ -132,15 +134,10 @@ function addIO() {
     return
   if (checkSetting(IOSetting, IOs)) {
     modifySetting(IOSetting, 'IO')
-    const newIO = ref(new IO(IOSetting.value.name, IOSetting.value.time, IOSetting.value.priority!))
-    IOs.push(newIO)
-    const group = draw.drawIO(newIO.value, canvas!)
-    IO2Group.set(newIO.value, group)
-    watch((newIO), (v) => {
-      draw.renderIO(v, group)
-      draw.animateIO(v, renderContext, mlfqContext)
-      canvas?.renderAll()
-    }, { immediate: true, deep: true })
+    const newIO = new IO(IOSetting.value.name, IOSetting.value.time, IOSetting.value.priority!)
+    const group = draw.drawIO(newIO, canvas!)
+    IO2Group.set(newIO.id, group)
+    IOs.value.push(newIO)
     insertIO(newIO, mlfqContext)
     IOSetting.value.count++
     IOSetting.value.total++
@@ -159,8 +156,8 @@ function modifySetting(setting: Ref<AddSetting>, type: 'IO' | 'process') {
   if (setting.value.priority)
     setting.value.priority = Math.ceil(setting.value.priority)
 }
-function checkSetting(setting: Ref<AddSetting>, arr: Ref<Process>[] | Ref<IO>[]) {
-  if (arr.findIndex(v => setting.value.name === v.value.name) >= 0
+function checkSetting(setting: Ref<AddSetting>, arr: Ref<Process[]> | Ref<IO[]>) {
+  if (arr.value.findIndex(v => setting.value.name === v.name) >= 0
   || setting.value.time <= 0
   || (setting.value.priority && setting.value.priority <= 0))
     return false
@@ -175,7 +172,7 @@ function toggleStatistic() {
 <template>
   <div>
     <transition name="fade">
-      <Statistic v-if="isMenuVis" @toggle="toggleStatistic" />
+      <Statistic v-if="isMenuVis" :info="processes" @toggle="toggleStatistic" />
     </transition>
     <main>
       <div style="display:flex;">
