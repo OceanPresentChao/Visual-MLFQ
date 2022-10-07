@@ -7,7 +7,7 @@ import './style.css'
 const app = createApp(App)
 app.config.globalProperties.$readyQueueSetting = readyQueueSetting
 app.mount('#app')
-declare module '@vue/runtime-core' {
+declare module 'vue' {
   export interface ComponentCustomProperties {
     $readyQueueSetting: Ref<ReadyQueueSetting[]>
   }
